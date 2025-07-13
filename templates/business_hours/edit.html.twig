@@ -97,8 +97,13 @@
                                     {{ form_errors(form.dayOfWeek) }}
                                 </div>
                                 <div class="mb-3 form-check">
-                                    {{ form_row(form.isOpen, { 'label_attr': {'class': 'form-check-label'} }) }}
-                                    <small class="form-text text-muted">{{ form_help(form.isOpen) }}</small>
+                                     <!-- Option 2: Utiliser les composants séparément -->
+                                     {{ form_label(form.isOpen, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                                     {{ form_widget(form.isOpen) }}
+                                     {{ form_errors(form.isOpen) }}
+                                     
+                                     <!-- Maintenant vous pouvez contrôler l'affichage de l'aide -->
+                                     <small class="form-text text-muted">{{ form_help(form.isOpen) }}</small>
                                 </div>
 
                                 <div id="timeSlotsContainer" style="display: none;">
