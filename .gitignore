@@ -18,3 +18,12 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> Conseillé par Gemini ###
+.env
+/node_modules/
+.symfony/
+.idea/
+*.log
+*.sqlite
+/public/build/
