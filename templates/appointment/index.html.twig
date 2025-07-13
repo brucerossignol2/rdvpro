@@ -1,0 +1,325 @@
+{# templates/appointment/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Calendrier - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {# FullCalendar CSS #}
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+    <style>
+        .fc-event {
+            cursor: pointer;
+        }
+        .fc-event-title-wrap {
+            white-space: normal; /* Allow event titles to wrap */
+        }
+        .fc-daygrid-event {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+        .fc-timegrid-event {
+            padding: 5px;
+        }
+        .fc-toolbar-title {
+            font-size: 1.5rem; /* Adjust title size */
+        }
+        .fc-button {
+            padding: 0.5em 0.8em;
+            font-size: 0.9em;
+        }
+        .fc-daygrid-day-number {
+            font-weight: bold;
+        }
+        .fc-day-today {
+            background-color: #e6f2ff !important; /* Light blue for today */
+        }
+        /* Style pour les heures non ouvrables (businessHours) */
+        .fc-non-business {
+            background-color: #d0d0d0 !important; /* Couleur de fond grisée plus foncée - FORCÉE */
+            opacity: 0.7 !important; /* Légèrement transparent - FORCÉ */
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-calendar-alt text-primary"></i>
+                    Mon Calendrier de Rendez-vous
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_appointment_new') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Ajouter un rendez-vous / indisponibilité
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal pour les détails du rendez-vous / indisponibilité -->
+<div class="modal fade" id="appointmentDetailModal" tabindex="-1" aria-labelledby="appointmentDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="appointmentDetailModalLabel">Détails du Rendez-vous</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="modalTitle" class="mb-3"></h4>
+                <p><strong><i class="fas fa-calendar-day me-2"></i>Date :</strong> <span id="modalDate"></span></p>
+                <p><strong><i class="fas fa-clock me-2"></i>Heure :</strong> <span id="modalTime"></span></p>
+                <p id="modalClient" style="display: none;"><strong><i class="fas fa-user me-2"></i>Client :</strong> <span id="modalClientName"></span></p>
+                <p id="modalServices" style="display: none;"><strong><i class="fas fa-briefcase me-2"></i>Prestations :</strong> <span id="modalServicesList"></span></p>
+                <p id="modalDescription" style="display: none;"><strong><i class="fas fa-info-circle me-2"></i>Description :</strong> <span id="modalDescriptionText"></span></p>
+                <p id="modalUnavailabilityLabel" class="text-danger" style="display: none;"><i class="fas fa-ban me-2"></i>Ceci est une indisponibilité personnelle.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <a href="#" id="editAppointmentButton" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Modifier</a>
+                <button type="button" id="deleteAppointmentButton" class="btn btn-danger"><i class="fas fa-trash-alt me-2"></i>Supprimer</button>
+                <form id="deleteAppointmentForm" method="post" style="display: none;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" id="deleteAppointmentToken">
+                    {# AJOUTÉ : Champ caché pour indiquer la redirection vers le calendrier #}
+                    <input type="hidden" name="redirect_to_calendar" value="true">
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {# FullCalendar JS #}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var events = {{ events|raw }}; // Events passed from controller
+            var businessHours = {{ businessHours|raw }}; // Business hours passed from controller
+            var updateTimesCsrfToken = "{{ updateTimesCsrfToken }}"; // Generic token for AJAX updates
+            var minTime = "{{ minTime }}"; // Dynamic min time
+            var maxTime = "{{ maxTime }}"; // Dynamic max time
+            var initialDate = "{{ initialDate }}"; // Dynamic initial date
+
+            // Debugging: Log the values received from the controller
+            console.log('minTime from controller:', minTime);
+            console.log('maxTime from controller:', maxTime);
+            console.log('businessHours from controller:', businessHours);
+            console.log('initialDate from controller:', initialDate);
+
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek', // Default view
+                initialDate: initialDate, // Set the initial date dynamically
+                locale: 'fr', // French locale
+                firstDay: 1, // Set Monday as the first day of the week (1 for Monday, 0 for Sunday)
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Aujourd\'hui',
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour'
+                },
+                slotMinTime: minTime, // Use dynamic min time
+                slotMaxTime: maxTime, // Use dynamic max time
+                slotDuration: '00:30:00', // Changed from 00:15:00 to 00:30:00
+                snapDuration: '00:30:00', // Changed from 00:15:00 to 00:30:00 for consistency
+                allDaySlot: false, // Hide the all-day slot
+                nowIndicator: true, // Show current time indicator
+                editable: true, // Allow dragging and resizing events
+                selectable: true, // Allow selecting time slots
+                selectMirror: true, // Show a mirror event when selecting
+                events: events, // Load events
+                businessHours: businessHours, // Apply business hours to gray out non-working times
+                selectConstraint: 'businessHours', // Restrict selection to business hours
+                eventConstraint: 'businessHours', // Restrict dragging/resizing events to business hours
+                height: 'auto', // Set height to auto to prevent large empty space
+
+                // Handle date/time selection to create a new appointment
+                select: function(info) {
+                    // Redirect to new appointment form with pre-filled dates
+                    window.location.href = '{{ path('app_appointment_new_prefilled') }}' + '/' + info.startStr + '/' + info.endStr;
+                },
+
+                // Handle clicking on an existing event
+                eventClick: function(info) {
+                    var appointment = info.event;
+                    var extendedProps = appointment.extendedProps;
+
+                    document.getElementById('modalTitle').textContent = appointment.title;
+                    document.getElementById('modalDate').textContent = appointment.start.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    document.getElementById('modalTime').textContent = appointment.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' - ' + appointment.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                    // Show/hide client and services based on unavailability
+                    if (extendedProps.isPersonalUnavailability) {
+                        document.getElementById('modalClient').style.display = 'none';
+                        document.getElementById('modalServices').style.display = 'none';
+                        document.getElementById('modalUnavailabilityLabel').style.display = 'block';
+                    } else {
+                        document.getElementById('modalClient').style.display = 'block';
+                        document.getElementById('modalServices').style.display = 'block';
+                        document.getElementById('modalUnavailabilityLabel').style.display = 'none';
+                        document.getElementById('modalClientName').textContent = extendedProps.clientName || 'N/A';
+                        document.getElementById('modalServicesList').textContent = extendedProps.services.map(s => s.name).join(', ') || 'Aucune';
+                    }
+
+                    // Show description if available
+                    if (extendedProps.description) {
+                        document.getElementById('modalDescription').style.display = 'block';
+                        document.getElementById('modalDescriptionText').textContent = extendedProps.description;
+                    } else {
+                        document.getElementById('modalDescription').style.display = 'none';
+                    }
+
+                    // Set edit button link
+                    document.getElementById('editAppointmentButton').href = '{{ path('app_appointment_edit', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
+
+                    // Set delete button form action and token
+                    document.getElementById('deleteAppointmentForm').action = '{{ path('app_appointment_delete', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
+                    document.getElementById('deleteAppointmentToken').value = extendedProps.deleteToken; // Use the pre-generated token
+
+
+                    // Show the modal
+                    var appointmentDetailModal = new bootstrap.Modal(document.getElementById('appointmentDetailModal'));
+                    appointmentDetailModal.show();
+                },
+
+                // Handle event drop (drag and drop)
+                eventDrop: function(info) {
+                    if (!confirm("Êtes-vous sûr de vouloir déplacer ce rendez-vous ?")) {
+                        info.revert(); // Revert if user cancels
+                    } else {
+                        updateAppointmentTimes(info.event.id, info.event.start, info.event.end, info); // Pass info to revert on error
+                    }
+                },
+
+                // Handle event resize
+                eventResize: function(info) {
+                    if (!confirm("Êtes-vous sûr de vouloir redimensionner ce rendez-vous ?")) {
+                        info.revert(); // Revert if user cancels
+                    } else {
+                        updateAppointmentTimes(info.event.id, info.event.start, info.event.end, info); // Pass info to revert on error
+                    }
+                }
+            });
+
+            calendar.render();
+
+            // Function to send updated appointment times to the server
+            function updateAppointmentTimes(id, newStart, newEnd, info) { // Added info parameter
+                fetch('/appointments/' + id + '/update-times', { // You'll need to create this route
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': updateTimesCsrfToken // Use the generic token
+                    },
+                    body: JSON.stringify({
+                        start: newStart.toISOString(),
+                        end: newEnd.toISOString()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Optionally, show a success message
+                        console.log('Rendez-vous mis à jour.');
+                        // No need to revert here, the event is already updated on calendar
+                    } else {
+                        // Revert event if update failed
+                        info.revert();
+                        alert('Erreur lors de la mise à jour du rendez-vous : ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    info.revert();
+                    alert('Une erreur inattendue est survenue lors de la mise à jour.');
+                });
+            }
+
+            // Handle delete button click in modal
+            document.getElementById('deleteAppointmentButton').addEventListener('click', function() {
+                if (confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ? Cette action est irréversible.")) {
+                    // Submit the hidden delete form
+                    document.getElementById('deleteAppointmentForm').submit();
+                }
+            });
+        });
+    </script>
+{% endblock %}

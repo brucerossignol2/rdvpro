@@ -1,0 +1,166 @@
+{# templates/profile/edit.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Profil - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_presentation' %}active{% endif %}" href="{{ path('app_profile_presentation') }}">
+                            <i class="fas fa-address-card"></i> Ma Présentation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-user-cog text-primary"></i>
+                    Mon Profil Professionnel
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire -->
+            <div class="row">
+                <div class="col-lg-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                Informations de votre compte et entreprise
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(profileForm, {'attr': {'novalidate': 'novalidate'}}) }}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-user"></i> Informations personnelles</h6>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.firstName) }}
+                                            {{ form_widget(profileForm.firstName) }}
+                                            {{ form_errors(profileForm.firstName) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.lastName) }}
+                                            {{ form_widget(profileForm.lastName) }}
+                                            {{ form_errors(profileForm.lastName) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.email) }}
+                                            {{ form_widget(profileForm.email) }}
+                                            {{ form_errors(profileForm.email) }}
+                                            <small class="form-text text-muted">{{ form_help(profileForm.email) }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-building"></i> Informations de l'entreprise</h6>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.businessName) }}
+                                            {{ form_widget(profileForm.businessName) }}
+                                            {{ form_errors(profileForm.businessName) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.businessAddress) }}
+                                            {{ form_widget(profileForm.businessAddress) }}
+                                            {{ form_errors(profileForm.businessAddress) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.businessPhone) }}
+                                            {{ form_widget(profileForm.businessPhone) }}
+                                            {{ form_errors(profileForm.businessPhone) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.businessEmail) }}
+                                            {{ form_widget(profileForm.businessEmail) }}
+                                            {{ form_errors(profileForm.businessEmail) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(profileForm.bookingLink) }}
+                                            {{ form_widget(profileForm.bookingLink) }}
+                                            {{ form_errors(profileForm.bookingLink) }}
+                                            <small class="form-text text-muted">{{ form_help(profileForm.bookingLink) }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save me-2"></i> Enregistrer les modifications
+                                    </button>
+                                </div>
+                            {{ form_end(profileForm) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+{# Removed duplicated sidebar styles from here #}
+{% endblock %}

@@ -1,0 +1,16 @@
+{# templates/client_registration/confirmation_email.html.twig #}
+<h1>Confirmez votre adresse e-mail</h1>
+
+<p>
+    Veuillez confirmer votre adresse e-mail en cliquant sur le lien suivant : <br><br>
+    <a href="{{ signedUrl }}">Confirmer mon e-mail</a>.
+</p>
+
+<p>
+    Ce lien expirera le {{ expiresAt|format_datetime('medium', 'short') }}.
+</p>
+
+<p>
+    Cordialement,<br>
+    L'équipe RDV Pro
+</p>

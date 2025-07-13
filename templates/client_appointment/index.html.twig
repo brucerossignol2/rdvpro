@@ -1,0 +1,125 @@
+{# templates/client_appointment/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Rendez-vous - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Important to keep parent stylesheets if any #}
+    <style>
+        /* Custom color for the heading and card headers */
+        .text-client-specific {
+            color: #3F8574 !important;
+        }
+
+        .bg-client-specific {
+            background-color: #3F8574 !important;
+            border-color: #3F8574 !important; /* Ensure border also matches for consistency */
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <h1 class="h2 mb-4 text-center text-client-specific"> {# Applied custom class here #}
+        <i class="fas fa-calendar-alt me-2"></i> Mes Rendez-vous Futurs
+    </h1>
+
+    {% if appointments is empty %}
+        <div class="alert alert-info text-center" role="alert">
+            Vous n'avez aucun rendez-vous futur ou en cours pour le moment.
+        </div>
+    {% else %}
+        {# Get current datetime for comparison #}
+        {% set now = 'now'|date('U') %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for appointment in appointments %}
+                {% set appointmentStart = appointment.startTime|date('U') %}
+                {% set appointmentEnd = appointment.endTime|date('U') %}
+                {% set isInProgress = (now >= appointmentStart and now <= appointmentEnd) %}
+
+                <div class="col">
+                    <div class="card h-100 shadow-sm {% if isInProgress %}border-success{% endif %}"> {# Add border for in-progress #}
+                        <div class="card-header {% if isInProgress %}bg-success{% else %}bg-client-specific{% endif %} text-white"> {# Applied custom class here #}
+                            <h5 class="card-title mb-0">
+                                {{ appointment.title }}
+                                {% if isInProgress %}
+                                    <span class="badge bg-light text-success ms-2">En cours</span> {# Indicator for in-progress #}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong><i class="fas fa-calendar-day me-2"></i>Date :</strong> {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}<br>
+                                <strong><i class="fas fa-clock me-2"></i>Heure :</strong> {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
+                            </p>
+                            {% if appointment.services is not empty %}
+                                <p class="card-text">
+                                    <strong><i class="fas fa-briefcase me-2"></i>Prestations :</strong>
+                                    <ul>
+                                        {% for service in appointment.services %}
+                                            <li>
+                                                {{ service.name }} ({{ service.duration }} min)
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-handshake me-1"></i> 
+                                                    {% if service.appointmentType == 'home_service' %}
+                                                        À domicile
+                                                    {% elseif service.appointmentType == 'office_service' %}
+                                                        Chez le professionnel / au cabinet
+                                                    {% elseif service.appointmentType == 'video_service' %}
+                                                        Par visioconférence
+                                                    {% elseif service.appointmentType == 'phone_service' %}
+                                                        Par téléphone
+                                                    {% else %}
+                                                        Non spécifié
+                                                    {% endif %}
+                                                </small>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </p>
+                            {% endif %}
+                            {% if appointment.description %}
+                                <p class="card-text"><strong><i class="fas fa-info-circle me-2"></i>Description :</strong> {{ appointment.description }}</p>
+                            {% endif %}
+
+                            {% if appointment.professional %}
+                                <hr>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <i class="fas fa-user-tie me-2"></i> Votre Professionnel
+                                </h6>
+                                <p class="card-text">
+                                    <strong>Nom :</strong> 
+                                    {% if appointment.professional.businessName %}
+                                        {{ appointment.professional.businessName }}
+                                    {% else %}
+                                        {{ appointment.professional.firstName }} {{ appointment.professional.lastName }}
+                                    {% endif %}
+                                </p>
+                                <p class="card-text">
+                                    <strong>Contact :</strong><br>
+                                    {% if appointment.professional.businessPhone %}
+                                        <a href="tel:{{ appointment.professional.businessPhone|replace({' ': ''}) }}" class="btn btn-sm btn-outline-info me-2 mb-2">
+                                            <i class="fas fa-phone-alt me-1"></i> {{ appointment.professional.businessPhone }}
+                                        </a>
+                                    {% endif %}
+                                    {% if appointment.professional.businessEmail %}
+                                        <a href="mailto:{{ appointment.professional.businessEmail }}" class="btn btn-sm btn-outline-info me-2 mb-2">
+                                            <i class="fas fa-envelope me-1"></i> Envoyer un mail
+                                        </a>
+                                    {% endif %}
+                                    {% if appointment.professional.bookingLink %}
+                                        <a href="{{ path('app_professional_public_show', {'bookingLink': appointment.professional.bookingLink}) }}" class="btn btn-sm btn-outline-info mb-2">
+                                            <i class="fas fa-external-link-alt me-1"></i> Page du Pro
+                                        </a>
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

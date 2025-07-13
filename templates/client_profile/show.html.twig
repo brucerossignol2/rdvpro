@@ -1,0 +1,98 @@
+{# templates/client_profile/show.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Profil Client - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Keep parent stylesheets if any #}
+    <style>
+        /* Custom color for the profile show title */
+        .text-profile-show-primary {
+            color: #3F8574 !important;
+        }
+
+        /* Custom style for the primary action button */
+        .btn-custom-primary {
+            background-color: #3F8574 !important;
+            border-color: #3F8574 !important;
+            color: #ffffff !important; /* Ensure text is white for contrast */
+        }
+
+        .btn-custom-primary:hover {
+            background-color: #347162 !important; /* Slightly darker on hover */
+            border-color: #347162 !important;
+        }
+
+        /* Custom style for the outline primary button (for "Changer mon mot de passe") */
+        .btn-outline-custom-primary {
+            color: #3F8574 !important;
+            border-color: #3F8574 !important;
+            background-color: transparent !important;
+        }
+
+        .btn-outline-custom-primary:hover {
+            background-color: #3F8574 !important;
+            color: #ffffff !important;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-profile-show-primary"> {# Applied custom class here #}
+                <i class="fas fa-user-circle me-2"></i> Mon Profil Client
+            </h1>
+
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Nom :</div>
+                <div class="col-md-8">{{ client.lastName }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Prénom :</div>
+                <div class="col-md-8">{{ client.firstName }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Email :</div>
+                <div class="col-md-8">{{ client.email }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Téléphone :</div>
+                <div class="col-md-8">{{ client.telephone ?: 'Non spécifié' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Rue :</div>
+                <div class="col-md-8">{{ client.rue ?: 'Non spécifié' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Code Postal :</div>
+                <div class="col-md-8">{{ client.codePostal ?: 'Non spécifié' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Ville :</div>
+                <div class="col-md-8">{{ client.ville ?: 'Non spécifiée' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Inscrit le :</div>
+                <div class="col-md-8">{{ client.createdAt|date('d/m/Y H:i', 'Europe/Paris') }}</div>
+            </div>
+            {% if client.professional %}
+            <div class="row mb-3">
+                <div class="col-md-4 text-md-end fw-bold">Professionnel associé :</div>
+                <div class="col-md-8">{{ client.professional.businessName }}</div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-center mt-4">
+                <a href="{{ path('app_client_profile_edit') }}" class="btn btn-custom-primary me-3"> {# Applied custom class here #}
+                    <i class="fas fa-edit me-2"></i> Modifier mes informations
+                </a>
+                <a href="{{ path('app_client_profile_change_password') }}" class="btn btn-outline-custom-primary"> {# Applied custom class here #}
+                    <i class="fas fa-key me-2"></i> Changer mon mot de passe
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

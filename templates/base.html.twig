@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}RDV Pro - Gestion de rendez-vous{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>📅</text></svg>">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        
+        {% block stylesheets %}{% endblock %}
+
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: #f8f9fa;
+                display: flex; /* Added for sticky footer */
+                flex-direction: column; /* Added for sticky footer */
+                min-height: 100vh; /* Added for sticky footer */
+            }
+            
+            .navbar-brand {
+                font-weight: 700;
+                color: #007bff !important;
+                /* Ajouté pour aligner l'image et le texte si tu décides de garder du texte à côté */
+                display: flex;
+                align-items: center;
+            }
+            /* Style pour l'image du logo dans la navbar */
+            .navbar-brand img {
+                height: 40px; /* Ajuste la hauteur selon tes besoins */
+                margin-right: 10px; /* Ajoute un peu d'espace à droite de l'image si tu gardes du texte */
+            }
+            
+            .main-content {
+                flex-grow: 1; /* Added to push footer to the bottom */
+                padding-top: 20px; /* Optional: Add some top padding to main content */
+                padding-bottom: 20px; /* Optional: Add some bottom padding to main content */
+            }
+            
+            .form-control, .form-select {
+                border-radius: .375rem;
+                border: 1px solid #dee2e6;
+                transition: all 0.2s ease-in-out;
+            }
+            
+            .form-control:focus, .form-select:focus {
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+            }
+            
+            .btn {
+                border-radius: .375rem;
+                padding: .5rem 1rem;
+                font-weight: 500;
+                transition: all 0.2s ease-in-out;
+            }
+            
+            .card {
+                border-radius: .5rem;
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                border: 1px solid rgba(0, 0, 0, .125);
+            }
+            
+            .card-header {
+                border-radius: .5rem .5rem 0 0 !important;
+                border-bottom: 1px solid rgba(0, 0, 0, .125);
+            }
+            
+            .text-primary { color: #007bff !important; }
+            .bg-primary { background-color: #007bff !important; }
+            
+            /* Animations */
+            .fade-in {
+                animation: fadeIn 0.5s ease-in;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            /* Form validation styles */
+            .form-control.is-invalid, .form-select.is-invalid {
+                border-color: #dc3545;
+            }
+            
+            .invalid-feedback {
+                display: block;
+                color: #dc3545;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+            }
+            
+            /* Custom scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+                
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+                
+            ::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 4px;
+            }
+                
+            ::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
+
+            /* Règle CSS pour le lien actif de la sidebar */
+            .sidebar .nav-link.active {
+                background-color: #007bff;
+                color: white;
+                border-radius: .25rem; /* Ajouté pour les coins arrondis */
+            }
+
+            /* Règle CSS pour le survol des liens de la sidebar (non actifs) */
+            .sidebar .nav-link:hover {
+                background-color: rgba(0, 123, 255, .1); /* Bleu clair */
+                color: #007bff; /* Texte bleu */
+            }
+
+            /* Footer Styles */
+            .footer {
+                background-color: #343a40; /* Dark background for the footer */
+                color: white;
+                padding: 1.5rem 0;
+                text-align: center;
+                margin-top: auto; /* Push the footer to the bottom */
+            }
+
+            .footer a {
+                color: #007bff; /* Link color */
+                text-decoration: none;
+            }
+
+            .footer a:hover {
+                color: #0056b3; /* Darker blue on hover */
+                text-decoration: underline;
+            }
+
+            /* Custom navbar background colors */
+            .navbar-user {
+                background-color: #007bff !important; /* Blue for ROLE_USER */
+            }
+
+            .navbar-client {
+                background-color: #3F8574 !important; /* Green for ROLE_CLIENT */
+            }
+
+            .navbar-guest {
+                background-color: #000000 !important; /* Black for non-logged in */
+            }
+        </style>
+    </head>
+    <body>
+        {# Dynamic navbar class based on user role #}
+        {% set navbarClass = 'navbar-guest' %}
+        {% if app.user %}
+            {% if is_granted('ROLE_USER') and not is_granted('ROLE_CLIENT') %}
+                {% set navbarClass = 'navbar-user' %}
+            {% elseif is_granted('ROLE_CLIENT') %}
+                {% set navbarClass = 'navbar-client' %}
+            {% endif %}
+        {% endif %}
+
+        <nav class="navbar navbar-expand-lg navbar-dark {{ navbarClass }} sticky-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ path('app_home') }}">
+                    <img src="{{ asset('images/logo_rdvpro.png') }}" alt="Logo RdvPro" style="height: 40px;">
+                    {# Tu peux retirer le texte "RDV Pro" ici si tu veux seulement l'image #}
+                    {# RDV Pro #}
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        {% if app.user %} {# Show these links only if user is logged in #}
+                            {# Show these links only if user has ROLE_USER (professional) #}
+                            {% if is_granted('ROLE_USER') and not is_granted('ROLE_CLIENT') %} {# Check if it's a professional, not just a client #}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_client_index') }}">
+                                        <i class="fas fa-users"></i> Clients
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_appointment_index') }}"> 
+                                        <i class="fas fa-calendar-alt"></i> Le calendrier
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_professional_appointments_index') }}"> {# Updated link #}
+                                        <i class="fas fa-calendar-check"></i> Rendez-vous
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {# New: Show "Mes rendez-vous" link for clients #}
+                            {% if is_granted('ROLE_CLIENT') %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_client_appointments_index') }}">
+                                        <i class="fas fa-calendar-check"></i> Mes rendez-vous
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {# Add admin link if user has ROLE_ADMIN #}
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_user_index') }}">
+                                        <i class="fas fa-user-shield"></i> Administration
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {# New: Show professional's name and link for clients #}
+                            {% if is_granted('ROLE_CLIENT') and app.user.professional is defined and app.user.professional is not null %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ path('app_professional_public_show', {'bookingLink': app.user.professional.bookingLink}) }}">
+                                        <i class="fas fa-briefcase"></i> 
+                                        {% if app.user.professional.businessName %}
+                                            {{ app.user.professional.businessName }}
+                                        {% else %}
+                                            {{ app.user.professional.firstName }} {{ app.user.professional.lastName }}
+                                        {% endif %}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    </ul>
+                    <ul class="navbar-nav">
+                        {% if app.user %} {# If user is logged in #}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user-circle"></i> 
+                                    {# Display firstName based on user type #}
+                                    {% if app.user.firstName is defined %}
+                                        {{ app.user.firstName }}
+                                    {% elseif app.user.prenom is defined %} {# Fallback for old 'prenom' property if it still exists #}
+                                        {{ app.user.prenom }}
+                                    {% else %}
+                                        Mon Compte
+                                    {% endif %}
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {# Conditional profile link based on role #}
+                                    {% if is_granted('ROLE_USER') %}
+                                        <li><a class="dropdown-item" href="{{ path('app_profile_edit') }}"><i class="fas fa-user-cog"></i> Profil Professionnel</a></li>
+                                    {% elseif is_granted('ROLE_CLIENT') %}
+                                        <li><a class="dropdown-item" href="{{ path('app_client_profile_show') }}"><i class="fas fa-user-cog"></i> Mon Profil Client</a></li> {# Updated link to client profile #}
+                                        <li><a class="dropdown-item" href="{{ path('app_client_appointments_index') }}"><i class="fas fa-calendar-check"></i> Mes Rendez-vous</a></li> {# Added "Mes Rendez-vous" to dropdown #}
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Paramètres</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+                                </ul>
+                            </li>
+                        {% else %} {# If user is not logged in #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_login') }}">
+                                    <i class="fas fa-sign-in-alt"></i> Connexion
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_register') }}">
+                                    <i class="fas fa-user-plus"></i> Inscription (Pro)
+                                </a>
+                            </li>
+                            {# Option to add a direct client registration link if desired, though it's usually via professional's public page #}
+                            {# <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_client_register') }}">
+                                    <i class="fas fa-user-plus"></i> Inscription (Client)
+                                </a>
+                            </li> #}
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content container fade-in"> {# Added 'container' class for better layout #}
+            {% block body %}{% endblock %}
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; {{ "now"|date("Y") }} Créé par <a href="https://br-net.fr/" target="_blank">BR-NET</a></p>
+            </div>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        {% block javascripts %}{% endblock %}
+        
+        <script>
+            // Auto-hide alerts after 5 seconds
+            document.addEventListener('DOMContentLoaded', function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    setTimeout(function() {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }, 5000);
+                });
+            });
+            
+            // Form validation enhancement
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    const invalidInputs = form.querySelectorAll(':invalid');
+                    if (invalidInputs.length > 0) {
+                        event.preventDefault();
+                        invalidInputs[0].focus();
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

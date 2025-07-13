@@ -1,0 +1,145 @@
+{# templates/business_hours/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Horaires - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_presentation' %}active{% endif %}" href="{{ path('app_profile_presentation') }}">
+                            <i class="fas fa-address-card"></i> Ma Présentation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {# Highlight "Mes Horaires" when on app_business_hours_index route #}
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                     <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-clock text-primary"></i>
+                    Mes Horaires d'Ouverture
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_profile_edit') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour au profil
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt"></i>
+                        Horaires hebdomadaires
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th scope="col">Jour</th>
+                                <th scope="col">Statut</th>
+                                <th scope="col">1ère Plage</th>
+                                <th scope="col">2ème Plage</th>
+                                <th scope="col" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hour in businessHours %}
+                                <tr>
+                                    <td>{{ hour.dayName }}</td>
+                                    <td>
+                                        {% if hour.isOpen %}
+                                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> Ouvert</span>
+                                        {% else %}
+                                            <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Fermé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if hour.startTime and hour.endTime %}
+                                            {{ hour.startTime|date('H:i', 'Europe/Paris') }} - {{ hour.endTime|date('H:i', 'Europe/Paris') }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if hour.startTime2 and hour.endTime2 %}
+                                            {{ hour.startTime2|date('H:i', 'Europe/Paris') }} - {{ hour.endTime2|date('H:i', 'Europe/Paris') }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ path('app_business_hours_edit', {'id': hour.id}) }}" class="btn btn-outline-primary btn-sm" title="Modifier">
+                                            <i class="fas fa-edit"></i> Modifier
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{# Removed duplicated sidebar styles from here #}
+{% endblock %}

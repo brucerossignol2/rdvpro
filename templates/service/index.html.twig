@@ -1,0 +1,258 @@
+{# templates/service/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Services - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span> {# Changed heading to MON COMPTE #}
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_presentation' %}active{% endif %}" href="{{ path('app_profile_presentation') }}">
+                            <i class="fas fa-address-card"></i> Ma Présentation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {# Highlight "Mes Services" when on app_service_index route #}
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-cogs text-primary"></i>
+                    Mes Services
+                    <span class="badge bg-primary ms-2">{{ services|length }}</span>
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_service_new') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Nouveau service
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% if services|length == 0 %}
+                <div class="text-center py-5">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                    <h3 class="text-muted">Aucun service enregistré</h3>
+                    <p class="text-muted">Commencez par ajouter votre première prestation.</p>
+                    <a href="{{ path('app_service_new') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle"></i> Ajouter un service
+                    </a>
+                </div>
+            {% else %}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table"></i>
+                            Liste de vos prestations
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col">Image</th>
+                                    <th scope="col">Libellé</th>
+                                    <th scope="col">Prix</th>
+                                    <th scope="col">Durée</th>
+                                    <th scope="col">Actif</th>
+                                    {# Removed "Types de service" column header #}
+                                    <th scope="col" class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in services %}
+                                    <tr>
+                                        <td>
+                                            {% if service.image %}
+                                                <img src="{{ asset('uploads/images/' ~ service.image) }}" alt="{{ service.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <i class="fas fa-image text-muted fa-2x"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ service.name }}</strong>
+                                            {% if service.description %}
+                                                <br><small class="text-muted">{{ service.description|length > 50 ? service.description|slice(0, 50) ~ '...' : service.description }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ service.price|format_currency('EUR') }}</td>
+                                        <td>{{ service.durationFormatted }}</td>
+                                        <td>
+                                            {% if service.active %}
+                                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Ouvert</span>
+                                            {% else %}
+                                                <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Fermé</span>
+                                            {% endif %}
+                                        </td>
+                                        {# Removed "Types de service" column data #}
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ path('app_service_show', {'id': service.id}) }}" class="btn btn-outline-info btn-sm" title="Voir"><i class="fas fa-eye"></i></a>
+                                                <a href="{{ path('app_service_edit', {'id': service.id}) }}" class="btn btn-outline-primary btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="confirmServiceDelete({{ service.id }}, '{{ service.name|e('js') }}', '{{ csrf_token('delete' ~ service.id) }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteServiceModal" tabindex="-1" aria-labelledby="deleteServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteServiceModalLabel">Confirmer la suppression du service</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le service <strong id="serviceNameToDelete"></strong> ?</p>
+                <div class="alert alert-warning">
+                    <strong>Attention :</strong> Cette action est irréversible.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteServiceForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" id="deleteServiceToken">
+                    <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles from base.html.twig and client index for consistency */
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #007bff;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table-responsive {
+    border-radius: 0 0 .5rem .5rem;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.6em;
+}
+
+.img-thumbnail {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+function confirmServiceDelete(serviceId, serviceName, csrfToken) {
+    document.getElementById('serviceNameToDelete').textContent = serviceName;
+    document.getElementById('deleteServiceForm').action = '/service/' + serviceId;
+    document.getElementById('deleteServiceToken').value = csrfToken;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteServiceModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

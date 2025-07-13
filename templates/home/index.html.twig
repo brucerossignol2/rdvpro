@@ -1,0 +1,96 @@
+{# templates/home/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Bienvenue sur RdvPro{% endblock %}
+
+{% block body %}
+{% set textColorClass = 'text-black' %} {# Default to black for non-connected #}
+{% set buttonClass = 'btn-dark' %} {# Default button class for non-connected #}
+
+{% if app.user %}
+    {% if is_granted('ROLE_USER') and not is_granted('ROLE_CLIENT') %}
+        {% set textColorClass = 'text-user-primary' %}
+        {% set buttonClass = 'btn-user-primary' %}
+    {% elseif is_granted('ROLE_CLIENT') %}
+        {% set textColorClass = 'text-client-primary' %}
+        {% set buttonClass = 'btn-client-primary' %}
+    {% endif %}
+{% endif %}
+
+<style>
+    /* Custom text colors for the "Bienvenue sur" heading */
+    .text-user-primary {
+        color: #007bff !important;
+    }
+    .text-client-primary {
+        color: #3F8574 !important;
+    }
+    .text-black {
+        color: #000000 !important;
+    }
+
+    /* Custom button styles for "Je suis un professionnel" */
+    .btn-user-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: #fff;
+    }
+    .btn-user-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .btn-client-primary {
+        background-color: #3F8574;
+        border-color: #3F8574;
+        color: #fff;
+    }
+    .btn-client-primary:hover {
+        background-color: #316c61; /* A slightly darker green for hover */
+        border-color: #316c61;
+    }
+
+    .btn-dark {
+        background-color: #000000;
+        border-color: #000000;
+        color: #fff;
+    }
+    .btn-dark:hover {
+        background-color: #333333;
+        border-color: #333333;
+    }
+</style>
+
+<div class="container my-5">
+    <div class="jumbotron text-center">
+        <h1 class="display-4 {{ textColorClass }}">Bienvenue sur <img src="{{ asset('images/logo_rdvpro.png') }}" alt="Logo RdvPro" style="height: 50px; vertical-align: middle;"></h1>
+        <p class="lead mt-4">Trouvez et réservez facilement vos rendez-vous avec des professionnels de toutes activités.</p>
+        <hr class="my-4">
+        <p>Que vous soyez un professionnel ou un client, RdvPro simplifie la gestion de vos plannings. (Service gratuit)</p>
+        <a class="btn {{ buttonClass }} btn-lg mt-3" href="{{ path('app_register') }}" role="button"><i class="fas fa-user-plus me-2"></i>Je suis un professionnel</a>
+        <a class="btn btn-outline-secondary btn-lg mt-3 ms-3" href="#" role="button"><i class="fas fa-search me-2"></i>Trouver un professionnel</a> {# Ce lien sera à implémenter plus tard pour la recherche #}
+    </div>
+
+    {# Vous pouvez ajouter d'autres sections ici, comme les derniers professionnels inscrits, des témoignages, etc. #}
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <h3>Pour les professionnels</h3>
+            <p>Gérez vos rendez-vous, vos clients et votre planning en toute simplicité. Créez votre page de réservation personnalisée en quelques clics.</p>
+            <ul>
+                <li>Planning intuitif</li>
+                <li>Gestion des clients</li>
+                <li>Lien de réservation unique</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h3>Pour les clients</h3>
+            <p>Réservez vos services en ligne, consultez les disponibilités des professionnels et recevez des rappels de rendez-vous.</p>
+            <ul>
+                <li>Recherche par activité et localisation</li>
+                <li>Réservation 24/7</li>
+                <li>Confirmations et rappels automatiques</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

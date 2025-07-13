@@ -1,0 +1,125 @@
+{# templates/service/show.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du Service - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Barre latérale -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION SERVICES</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-list-alt"></i> Liste des services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_service_new') }}">
+                            <i class="fas fa-plus-circle"></i> Nouveau service
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Contenu principal -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-info-circle text-primary"></i>
+                    Détails du Service: {{ service.name }}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_service_index') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                    <a href="{{ path('app_service_edit', {'id': service.id}) }}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Informations générales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            {% if service.image %}
+                                <img src="{{ asset('uploads/images/' ~ service.image) }}" alt="{{ service.name }}" class="img-fluid rounded shadow-sm" style="max-height: 200px; object-fit: cover;">
+                            {% else %}
+                                <i class="fas fa-image fa-5x text-muted mb-3"></i>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <dl class="row">
+                                <dt class="col-sm-4">Libellé:</dt>
+                                <dd class="col-sm-8">{{ service.name }}</dd>
+
+                                <dt class="col-sm-4">Description:</dt>
+                                <dd class="col-sm-8">{{ service.description|default('N/A') }}</dd>
+
+                                <dt class="col-sm-4">Prix:</dt>
+                                <dd class="col-sm-8">{{ service.price|format_currency('EUR') }}</dd>
+
+                                <dt class="col-sm-4">Durée:</dt>
+                                <dd class="col-sm-8">{{ service.durationFormatted }}</dd>
+
+                                <dt class="col-sm-4">Actif:</dt>
+                                <dd class="col-sm-8">
+                                    {% if service.active %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Oui</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Non</span>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-4">Créé le:</dt>
+                                <dd class="col-sm-8">{{ service.createdAt|date('d/m/Y H:i', 'Europe/Paris') }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Type de service disponible</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        {% if service.appointmentType == 'home_service' %}
+                            Service à domicile
+                        {% elseif service.appointmentType == 'office_service' %}
+                            Service chez le professionnel
+                        {% elseif service.appointmentType == 'video_service' %}
+                            Service par visioconférence
+                        {% elseif service.appointmentType == 'phone_service' %}
+                            Service par téléphone
+                        {% else %}
+                            Non spécifié
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

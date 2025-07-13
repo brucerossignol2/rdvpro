@@ -1,0 +1,29 @@
+#!/usr/bin/env php
+<?php
+
+use App\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Dotenv\Dotenv; // NOUVEAU : Importez la classe Dotenv
+
+if (!is_dir(dirname(__DIR__).'/vendor')) { // Gardez votre chemin qui fonctionne
+    throw new LogicException('Dependencies are missing. Try running "composer install".');
+}
+
+if (!is_file(dirname(__DIR__).'/vendor/autoload_runtime.php')) { // Gardez votre chemin qui fonctionne
+    throw new LogicException('Symfony Runtime is missing. Try running "composer require symfony/runtime".');
+}
+
+require_once dirname(__DIR__).'/vendor/autoload_runtime.php'; // Gardez votre chemin qui fonctionne
+
+// NOUVEAU : C'EST CETTE LIGNE QUI DOIT ÊTRE AJOUTÉE POUR CHARGER LE .env DANS LA CONSOLE
+// Assurez-vous que le chemin pointe vers votre fichier .env réel.
+// Basé sur votre observation, le fichier .env serait à la racine du "vrai" projet Symfony,
+// donc relative au répertoire où est censé être le dossier "vendor".
+(new Dotenv())->bootEnv(dirname(__DIR__).'/.env');
+
+
+return function (array $context) {
+    $kernel = new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+
+    return new Application($kernel);
+};

@@ -1,0 +1,105 @@
+{# templates/client_profile/edit.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier mon Profil - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Keep parent stylesheets if any #}
+    <style>
+        /* Custom color for the profile edit title */
+        .text-profile-edit-primary {
+            color: #3F8574 !important;
+        }
+
+        /* Custom style for the primary action button */
+        .btn-custom-primary {
+            background-color: #3F8574 !important;
+            border-color: #3F8574 !important;
+            color: #ffffff !important; /* Ensure text is white for contrast */
+        }
+
+        .btn-custom-primary:hover {
+            background-color: #347162 !important; /* Slightly darker on hover */
+            border-color: #347162 !important;
+        }
+
+        /* Custom style for the secondary action button */
+        .btn-custom-secondary {
+            background-color: #6c757d !important; /* Keep a neutral grey */
+            border-color: #6c757d !important;
+            color: #ffffff !important;
+        }
+
+        .btn-custom-secondary:hover {
+            background-color: #5a6268 !important; /* Slightly darker on hover */
+            border-color: #5a6268 !important;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-profile-edit-primary"> {# Applied custom class here #}
+                <i class="fas fa-user-edit me-2"></i> Modifier mon Profil Client
+            </h1>
+
+            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3 text-muted">Informations personnelles</h5>
+                        <div class="mb-3">
+                            {{ form_label(form.firstName) }}
+                            {{ form_widget(form.firstName) }}
+                            {{ form_errors(form.firstName) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.lastName) }}
+                            {{ form_widget(form.lastName) }}
+                            {{ form_errors(form.lastName) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.email) }}
+                            {{ form_widget(form.email) }}
+                            {{ form_errors(form.email) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.telephone) }}
+                            {{ form_widget(form.telephone) }}
+                            {{ form_errors(form.telephone) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3 text-muted">Adresse</h5>
+                        <div class="mb-3">
+                            {{ form_label(form.rue) }}
+                            {{ form_widget(form.rue) }}
+                            {{ form_errors(form.rue) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.codePostal) }}
+                            {{ form_widget(form.codePostal) }}
+                            {{ form_errors(form.codePostal) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.ville) }}
+                            {{ form_widget(form.ville) }}
+                            {{ form_errors(form.ville) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ path('app_client_profile_show') }}" class="btn btn-custom-secondary"> {# Applied custom class here #}
+                        <i class="fas fa-times me-2"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-custom-primary"> {# Applied custom class here #}
+                        <i class="fas fa-save me-2"></i> Enregistrer les modifications
+                    </button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

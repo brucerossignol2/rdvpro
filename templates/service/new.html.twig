@@ -1,0 +1,180 @@
+{# templates/service/new.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Service - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION SERVICES</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-list-alt"></i> Liste des services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_service_new') }}">
+                            <i class="fas fa-plus-circle"></i> Nouveau service
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-plus-circle text-primary"></i>
+                    Créer un nouveau Service
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_service_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-clipboard-list"></i>
+                                Informations du service
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                                <div class="row">
+                                    {# Colonne pour les détails principaux (Libellé, Prix, Durée, Actif) #}
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3">
+                                            <i class="fas fa-info-circle"></i> Détails principaux
+                                        </h6>
+                                        {# Libellé du service - pleine largeur dans cette colonne #}
+                                        <div class="mb-3">
+                                            {{ form_label(form.name, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                            {{ form_widget(form.name, {'attr': {'class': 'form-control w-100'}}) }}
+                                            {{ form_errors(form.name) }}
+                                        </div>
+                                        <div class="row"> {# Prix et Durée côte à côte #}
+                                            <div class="col-md-6 mb-3">
+                                                {{ form_label(form.price, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                                {{ form_widget(form.price) }}
+                                                {{ form_errors(form.price) }}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                {{ form_label(form.duration, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                                {{ form_widget(form.duration) }}
+                                                {{ form_errors(form.duration) }}
+                                            </div>
+                                        </div>
+                                        <div class="mb-3 form-check">
+                                            {{ form_row(form.active, { 'label_attr': {'class': 'form-check-label'} }) }}
+                                        </div>
+                                    </div>
+
+                                    {# Colonne pour le contenu additionnel (Description, Image) #}
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3">
+                                            <i class="fas fa-pencil-alt"></i> Contenu additionnel
+                                        </h6>
+                                        <div class="mb-3">
+                                            {{ form_label(form.description, null, {'label_attr': {'class': 'form-label d-block fw-bold'}}) }}
+                                            {{ form_widget(form.description, {'attr': {'class': 'form-control w-100'}}) }}
+                                            {{ form_errors(form.description) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(form.imageFile, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                            {{ form_widget(form.imageFile) }}
+                                            {{ form_errors(form.imageFile) }}
+
+                                            {# Pour un nouveau service, il n'y a pas d'image existante à afficher #}
+                                            <div class="mt-2 text-center text-muted small">
+                                                Aucune image enregistrée.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <h6 class="mt-4 mb-3 text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> Type de service disponible
+                                </h6>
+                                {# Affichage des boutons radio sur deux colonnes #}
+                                <div class="row mb-3">
+                                    {% for child in form.appointmentType %}
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
+                                                {{ form_label(child, null, {'label_attr': {'class': 'form-check-label ms-2'}}) }} {# Ajout de ms-2 pour l'espace #}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    {{ form_errors(form.appointmentType) }}
+                                </div>
+
+                                <hr class="my-4">
+                                
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ path('app_service_index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save"></i> Enregistrer le service
+                                    </button>
+                                </div>
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb"></i> Aide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Informations essentielles :</h6>
+                            <ul class="small text-muted">
+                                <li>**Libellé :** Nom du service (ex: "Coaching Sportif").</li>
+                                <li>**Prix :** Le coût de la prestation.</li>
+                                <li>**Durée :** La durée en minutes (ex: 60 pour 1h).</li>
+                                <li>**Actif :** Si le service est visible pour la réservation.</li>
+                            </ul>
+                            <hr>
+                            <h6>Types de service :</h6>
+                            <ul class="small text-muted">
+                                <li>Indiquez où ce service peut être réalisé (à domicile, dans votre local, en visio, par téléphone).</li>
+                                <li>Un service peut être disponible à plusieurs endroits.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

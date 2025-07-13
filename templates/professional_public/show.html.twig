@@ -1,0 +1,223 @@
+{# templates/professional_public/show.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ professional.businessName }} - Prenez rendez-vous{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Important to keep parent stylesheets if any #}
+    <style>
+        /* Custom color for main headings and titles */
+        .text-professional-primary {
+            color: #3F8574 !important;
+        }
+
+        /* Custom header for the professional info card */
+        .card-header-professional {
+            background-color: #3F8574 !important; /* Apply color to the card header background */
+            color: #ffffff !important; /* Ensure text is white */
+        }
+
+        /* Custom style for primary buttons */
+        .btn-custom-primary {
+            background-color: #3F8574 !important;
+            border-color: #3F8574 !important;
+            color: #ffffff !important; /* Ensure text is white for contrast */
+        }
+
+        .btn-custom-primary:hover {
+            background-color: #347162 !important; /* Slightly darker on hover */
+            border-color: #347162 !important;
+        }
+
+        /* Custom style for outline primary buttons */
+        .btn-outline-custom-primary {
+            color: #3F8574 !important;
+            border-color: #3F8574 !important;
+            background-color: transparent !important;
+        }
+
+        .btn-outline-custom-primary:hover {
+            background-color: #3F8574 !important;
+            color: #ffffff !important;
+        }
+
+        /* Custom style for success badges (e.g., open hours) */
+        .badge-custom-success {
+            background-color: #3F8574 !important;
+            color: #ffffff !important;
+        }
+
+        /* Custom style for info icons (e.g., duration icon) */
+        .text-custom-info-icon {
+            color: #3F8574 !important; /* For the duration icon */
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="row">
+        {# Colonne de gauche: Infos du professionnel et Présentation #}
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm mb-4">
+                {# Changed bg-primary to card-header-professional #}
+                <div class="card-header card-header-professional text-center">
+                    <h4 class="card-title mb-0">{{ professional.businessName }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row"> {# Nouvelle ligne pour le logo et les coordonnées #}
+                        <div class="col-md-4 text-center"> {# Colonne pour le logo #}
+                            {% if professional.presentationLogo %}
+                                <img src="{{ asset('uploads/images/' ~ professional.presentationLogo) }}" alt="Logo de {{ professional.businessName }}" class="img-fluid rounded-circle mb-3" style="max-height: 120px; object-fit: cover;">
+                            {% else %}
+                                <div class="d-flex justify-content-center align-items-center bg-light rounded-circle mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
+                                    <i class="fas fa-building fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8"> {# Colonne pour les coordonnées #}
+                            {# Changed text-primary to text-professional-primary #}
+                            <h5 class="text-professional-primary mb-3"><i class="fas fa-info-circle me-2"></i>Coordonnées</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-map-marker-alt me-2 text-muted"></i> {{ professional.businessAddress }}</li>
+                                <li><i class="fas fa-phone me-2 text-muted"></i> {{ professional.businessPhone }}</li>
+                                <li><i class="fas fa-envelope me-2 text-muted"></i> {{ professional.businessEmail }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {# AJOUT ICI : Bouton de connexion spécifique au professionnel #}
+                    {% if not isUserLoggedIn %} {# Condition pour afficher le bouton seulement si l'utilisateur n'est PAS connecté #}
+                        <div class="text-center mt-3">
+                            {# Changed btn-outline-primary to btn-outline-custom-primary #}
+                            <a href="{{ path('app_login', {'bookingLink': professional.bookingLink}) }}" class="btn btn-outline-custom-primary w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i> Connexion Client
+                            </a>
+                        </div>
+                    {% endif %}
+                    {# FIN AJOUT #}
+
+                    {% if professional.presentationDescription %}
+                        {# Changed text-primary to text-professional-primary #}
+                        <h5 class="text-professional-primary mt-4 mb-3"><i class="fas fa-quote-right me-2"></i>À propos de nous</h5>
+                        <p class="text-muted">{{ professional.presentationDescription|nl2br }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                {# Changed bg-primary to card-header-professional #}
+                <div class="card-header card-header-professional text-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-clock me-2"></i>Nos Horaires</h5>
+                </div>
+                <div class="card-body">
+                    {% if businessHours is empty %}
+                        <p class="text-muted text-center">Aucun horaire défini pour le moment.</p>
+                    {% else %}
+                        <div class="d-flex flex-column">
+                            {% for hour in businessHours %}
+                                <div class="d-flex align-items-center py-1">
+                                    {# Colonne pour le nom du jour, prend 4/12 sur petit écran, 3/12 sur moyen et plus #}
+                                    <div class="col-4 col-md-3 fw-bold text-nowrap">{{ hour.getDayName() }}:</div>
+                                    
+                                    {# Colonne pour les tranches horaires ou le statut "Fermé" #}
+                                    <div class="col-8 col-md-9 d-flex flex-wrap">
+                                        {% if hour.isDayOff or not hour.isIsOpen %} {# Corrected to isIsOpen #}
+                                            <span class="badge bg-danger">Fermé</span>
+                                        {% else %}
+                                            {# Première tranche horaire #}
+                                            {% if hour.startTime and hour.endTime %}
+                                                {# Changed bg-success to badge-custom-success #}
+                                                <span class="badge badge-custom-success {% if hour.startTime2 and hour.endTime2 %}me-2{% endif %}">
+                                                    {{ hour.startTime|date('H:i', 'Europe/Paris') }} - {{ hour.endTime|date('H:i', 'Europe/Paris') }}
+                                                </span>
+                                            {% endif %}
+                                            
+                                            {# Deuxième tranche horaire #}
+                                            {% if hour.startTime2 and hour.endTime2 %}
+                                                {# Changed bg-success to badge-custom-success #}
+                                                <span class="badge badge-custom-success">
+                                                    {{ hour.startTime2|date('H:i', 'Europe/Paris') }} - {{ hour.endTime2|date('H:i', 'Europe/Paris') }}
+                                                </span>
+                                            {% endif %}
+                                            
+                                            {# Cas de secours si ouvert mais sans heures définies #}
+                                            {% if not hour.startTime and not hour.startTime2 %}
+                                                <span class="badge bg-danger">Fermé</span> 
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Colonne de droite: Photo et Services #}
+        <div class="col-lg-8">
+            {# Photo descriptive #}
+            {% if professional.presentationImage %}
+                <div class="card shadow-sm mb-4">
+                    <img src="{{ asset('uploads/images/' ~ professional.presentationImage) }}" class="card-img-top rounded-top" alt="Image de présentation de {{ professional.businessName }}" style="max-height: 800px; object-fit: cover;">
+                </div>
+            {% endif %}
+
+            {# Changed text-primary to text-professional-primary #}
+            <h2 class="text-professional-primary mb-4"><i class="fas fa-briefcase me-2"></i>Nos Services</h2>
+            {% if services is empty %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>Ce professionnel n'a pas encore de services actifs.
+                </div>
+            {% else %}
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    {% for service in services %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm">
+                                {% if service.image %}
+                                    <img src="{{ asset('uploads/images/' ~ service.image) }}" class="card-img-top" alt="{{ service.name }}" style="height: 480px; object-fit: cover;">
+                                {% else %}
+                                    <div class="d-flex justify-content-center align-items-center bg-light" style="height: 180px;">
+                                        <i class="fas fa-concierge-bell fa-4x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    {# Changed text-primary to text-professional-primary #}
+                                    <h5 class="card-title text-professional-primary">{{ service.name }}</h5>
+                                    <p class="card-text text-muted small">{{ service.description|default('Aucune description.')|length > 100 ? service.description|slice(0, 100) ~ '...' : service.description|default('Aucune description.') }}</p>
+                                    <ul class="list-unstyled mt-auto">
+                                        <li><i class="fas fa-euro-sign me-2 text-success"></i><strong>Prix:</strong> {{ service.price|format_currency('EUR') }}</li>
+                                        {# Changed text-info to text-custom-info-icon #}
+                                        <li><i class="fas fa-hourglass-half me-2 text-custom-info-icon"></i><strong>Durée:</strong> {{ service.durationFormatted }}</li>
+                                        <li><i class="fas fa-handshake me-2 text-warning"></i><strong>Type:</strong> 
+                                            {% if service.appointmentType == 'home_service' %}
+                                                À domicile
+                                            {% elseif service.appointmentType == 'office_service' %}
+                                                Chez le professionnel / au cabinet
+                                            {% elseif service.appointmentType == 'video_service' %}
+                                                Par visioconférence
+                                            {% elseif service.appointmentType == 'phone_service' %}
+                                                Par téléphone
+                                            {% else %}
+                                                Non spécifié
+                                            {% endif %}
+                                        </li>
+                                    </ul>
+                                    <div class="mt-3">
+                                        {# Link to the new client booking calendar #}
+                                        {# Changed btn-primary to btn-custom-primary #}
+                                        <a href="{{ path('app_client_booking_calendar', {'bookingLink': professional.bookingLink, 'serviceId': service.id}) }}" class="btn btn-custom-primary w-100">
+                                            <i class="fas fa-calendar-check me-2"></i> Réserver ce service
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

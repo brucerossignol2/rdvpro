@@ -1,0 +1,292 @@
+{# templates/client_booking/calendar.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Réserver un service avec {{ professional.businessName }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Important to keep parent stylesheets if any #}
+    {# FullCalendar CSS #}
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+    <style>
+        /* Basic FullCalendar styles */
+        #calendar {
+            min-height: 500px; /* Ensure the calendar container has a minimum height */
+        }
+        .fc-event {
+            cursor: pointer;
+        }
+        .fc-event-title-wrap {
+            white-space: normal; /* Allow event titles to wrap */
+        }
+        .fc-daygrid-event {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+        .fc-timegrid-event {
+            padding: 5px;
+        }
+        .fc-toolbar-title {
+            font-size: 1.5rem; /* Adjust title size */
+        }
+        .fc-button {
+            padding: 0.5em 0.8em;
+            font-size: 0.9em;
+        }
+        .fc-daygrid-day-number {
+            font-weight: bold;
+            color: #3F8574; /* Apply the desired color for day numbers */
+        }
+        .fc-day-today {
+            background-color: #e6f2ff !important; /* Light blue for today */
+        }
+        /* Style for non-business hours (businessHours) */
+        .fc-non-business {
+            background-color: #d0d0d0 !important; /* Darker gray background - FORCED */
+            opacity: 0.7 !important; /* Slightly transparent - FORCED */
+        }
+        /* Style for the logged-in client's own appointments */
+        .fc-event.client-own-appointment {
+            background-color: #198754 !important; /* Darker Green (Bootstrap success) */
+            border-color: #198754 !important;
+            color: #ffffff !important; /* White text */
+        }
+        /* Style for professional's unavailabilities and other clients' appointments */
+        .fc-event.professional-unavailability,
+        .fc-event.other-client-appointment {
+            background-color: #e9ecef !important; /* Light grey */
+            border-color: #e9ecef !important;
+            color: #6c757d !important; /* Dark grey text */
+            opacity: 0.8; /* Slightly transparent */
+        }
+
+        /* Custom style for the booking title */
+        .text-booking-primary {
+            color: #3F8574 !important;
+        }
+
+        /* NEW: Style for calendar column headers (days of the week) */
+        .fc-col-header-cell-cushion { /* This class targets the text inside the header cells */
+            color: #3F8574 !important; /* Apply the desired color */
+            font-weight: bold; /* Make them bold for better visibility if desired */
+        }
+        /* Optional: If you want to change the border/background of the header row itself */
+        .fc-theme-standard th {
+             border-color: #3F8574; /* Change border color of header cells */
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-booking-primary"> {# Applied custom class here #}
+                <i class="fas fa-calendar-check me-2"></i> Réserver avec {{ professional.businessName }}
+            </h1>
+            <h2 class="h5 mb-4 text-center text-secondary">
+                Service sélectionné: <strong>{{ selectedService.name }}</strong> (Durée: {{ selectedService.duration }} min)
+            </h2>
+
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div id="calendar"></div>
+
+            {% if not isClientLoggedIn %}
+                <div class="alert alert-warning text-center mt-4" role="alert">
+                    Vous devez être connecté pour réserver un rendez-vous.
+                    <a href="{{ path('app_login') }}" class="alert-link">Connectez-vous</a> ou
+                    <a href="{{ path('app_client_register', {'bookingLink': clientRegistrationBookingLink}) }}" class="alert-link">créez un compte</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {# FullCalendar JS #}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            // Parse JSON strings passed from the controller
+            // These variables are already JSON-encoded strings from the PHP controller.
+            // Use |raw to prevent Twig from HTML-escaping the JSON string.
+            var events = {{ events|raw }};
+            var businessHours = {{ businessHours|raw }};
+            var minTime = "{{ minTime }}"; // Dynamic min time
+            var maxTime = "{{ maxTime }}"; // Dynamic max time
+            var isClientLoggedIn = {{ isClientLoggedIn ? 'true' : 'false' }};
+            var professionalBookingLink = "{{ professional.bookingLink }}";
+            var selectedServiceId = "{{ selectedService.id }}";
+            var selectedServiceDuration = {{ selectedService.duration }}; // Duration in minutes
+            var initialDate = "{{ initialDate }}"; // Get the initial date from the controller
+            var currentClientUserId = {{ app.user and app.user.id ? app.user.id : 'null' }}; // Get the ID of the logged-in client
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek', // Default view
+                initialDate: initialDate, // Set the initial date dynamically
+                locale: 'fr', // French locale
+                firstDay: 1, // Set Monday as the first day of the week (1 for Monday, 0 for Sunday)
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Aujourd\'hui',
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour'
+                },
+                slotMinTime: minTime, // Use dynamic min time
+                slotMaxTime: maxTime, // Use dynamic max time
+                slotDuration: '00:30:00', // Client can only book in 30-min increments
+                snapDuration: '00:30:00', // Snap to 30-min increments
+                allDaySlot: false, // Hide the all-day slot
+                nowIndicator: true, // Show current time indicator
+                editable: false, // Clients cannot drag/resize events
+                selectable: true, // Allow selecting time slots
+                selectMirror: true, // Show a mirror event when selecting
+                events: events, // Load events (unavailabilities and existing appointments)
+                businessHours: businessHours, // Apply business hours to gray out non-working times
+                selectConstraint: 'businessHours', // Restrict selection to business hours
+                eventConstraint: 'businessHours', // Restrict existing events to business hours (should be handled by backend)
+                height: 'auto', // Set height to auto to prevent large empty space
+
+                // Custom event rendering to apply specific classes for styling and content
+                eventContent: function(arg) {
+                    let title = '';
+                    let classList = [];
+
+                    if (arg.event.extendedProps.isPersonalUnavailability) {
+                        // For professional's unavailabilities
+                        classList.push('professional-unavailability');
+                        title = ''; // Empty title as requested
+                    } else if (arg.event.extendedProps.isClientAppointment) {
+                        // For client appointments
+                        if (isClientLoggedIn && arg.event.extendedProps.clientId == currentClientUserId) {
+                            // Logged-in client's own appointment
+                            classList.push('client-own-appointment');
+                            // Format start and end times for display
+                            const start = arg.event.start;
+                            const end = arg.event.end;
+                            const formatter = new Intl.DateTimeFormat('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hourCycle: 'h23'
+                            });
+                            title = `${formatter.format(start)} - ${formatter.format(end)}`;
+                        } else {
+                            // Other clients' appointments
+                            classList.push('other-client-appointment');
+                            title = ''; // Empty title as requested
+                        }
+                    }
+
+                    // Add a check to ensure arg.el exists before accessing classList
+                    if (arg.el) {
+                        // Apply classes to the event element
+                        arg.el.classList.add(...classList);
+                    }
+
+                    // Create a custom content element for the event
+                    let arrayOfDomNodes = [];
+                    if (title) {
+                        let titleEl = document.createElement('div');
+                        titleEl.classList.add('fc-event-title');
+                        titleEl.innerText = title;
+                        arrayOfDomNodes.push(titleEl);
+                    }
+                    
+                    return { domNodes: arrayOfDomNodes };
+                },
+
+                // Handle click on events (only for logged-in client's own appointments)
+                eventClick: function(info) {
+                    if (isClientLoggedIn && info.event.extendedProps.isClientAppointment && info.event.extendedProps.clientId == currentClientUserId) {
+                        // Redirect to the client's appointments page
+                        window.location.href = "{{ path('app_client_appointments_index') }}";
+                    } else {
+                        // For other events (other clients' appointments or unavailabilities), do nothing or show a generic message
+                        // alert("Ce créneau est déjà pris ou indisponible.");
+                    }
+                },
+
+                // Handle date/time selection to create a new appointment
+                select: function(info) {
+                    if (!isClientLoggedIn) {
+                        alert("Veuillez vous connecter ou créer un compte pour réserver un rendez-vous.");
+                        window.location.href = "{{ path('app_login') }}";
+                        calendar.unselect();
+                        return;
+                    }
+
+                    // info.start is a FullCalendar Date object.
+                    // If timeZone is not set in FullCalendar, it defaults to the browser's local timezone.
+                    // Since the browser is in Europe/Paris, info.start will be in Europe/Paris.
+                    // Calling toISOString() on it correctly converts it to UTC for backend.
+                    var selectedStartUTC_ISO = info.start.toISOString();
+                    // Calculate end time and convert to UTC ISO string
+                    var selectedEndUTC_ISO = new Date(info.start.getTime() + selectedServiceDuration * 60 * 1000).toISOString();
+
+                    // For the confirmation alert, format info.start and the calculated end directly
+                    // using the browser's local timezone for display.
+                    var displayStartDateTime = info.start;
+                    var displayEndDateTime = new Date(info.start.getTime() + selectedServiceDuration * 60 * 1000);
+
+                    var formatterDate = new Intl.DateTimeFormat('fr-FR', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                    });
+                    var formatterTime = new Intl.DateTimeFormat('fr-FR', {
+                        hour: '2-digit', minute: '2-digit',
+                        hourCycle: 'h23' // Use 24-hour format
+                    });
+
+                    var displayDate = formatterDate.format(displayStartDateTime);
+                    var displayStartTime = formatterTime.format(displayStartDateTime);
+                    var displayEndTime = formatterTime.format(displayEndDateTime);
+
+                    // Check for overlap with existing events (unavailabilities or other appointments)
+                    // FullCalendar's selectConstraint handles business hours, but this is an additional check for events.
+                    var overlap = calendar.getEvents().some(function(event) {
+                        // Only check against background events (unavailabilities/other appointments)
+                        // This prevents booking over existing occupied slots
+                        // Note: FullCalendar events have start/end as Date objects
+                        return (info.start < event.end && displayEndDateTime > event.start);
+                    });
+
+                    if (overlap) {
+                        alert("Ce créneau horaire chevauche une indisponibilité ou un rendez-vous existant. Veuillez choisir un autre créneau.");
+                        calendar.unselect();
+                        return;
+                    }
+
+                    // Confirmation dialog
+                    if (confirm("Voulez-vous réserver le service '{{ selectedService.name }}' pour le " + displayDate + " de " + displayStartTime + " à " + displayEndTime + " ?")) {
+                        // Redirect to the confirmation page, passing UTC ISO strings
+                        window.location.href = '{{ path('app_client_booking_confirm', {
+                            'bookingLink': professional.bookingLink,
+                            'serviceId': selectedService.id,
+                            'start': 'PLACEHOLDER_START',
+                            'end': 'PLACEHOLDER_END'
+                        }) }}'
+                        .replace('PLACEHOLDER_START', selectedStartUTC_ISO)
+                        .replace('PLACEHOLDER_END', selectedEndUTC_ISO);
+                    }
+                    calendar.unselect(); // Unselect the chosen slot after action
+                },
+            });
+
+            calendar.render();
+        });
+    </script>
+{% endblock %}

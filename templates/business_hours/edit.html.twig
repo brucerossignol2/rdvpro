@@ -1,0 +1,240 @@
+{# templates/business_hours/edit.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Horaires - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {# Corrected line below #}
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                     <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-edit text-primary"></i>
+                    Modifier les Horaires pour {{ business_hour.dayName }}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_business_hours_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour aux horaires
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-clock"></i>
+                                Horaires d'ouverture
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                                <div class="mb-3">
+                                    {{ form_label(form.dayOfWeek) }}
+                                    {{ form_widget(form.dayOfWeek) }}
+                                    {{ form_errors(form.dayOfWeek) }}
+                                </div>
+                                <div class="mb-3 form-check">
+                                    {{ form_row(form.isOpen, { 'label_attr': {'class': 'form-check-label'} }) }}
+                                    <small class="form-text text-muted">{{ form_help(form.isOpen) }}</small>
+                                </div>
+
+                                <div id="timeSlotsContainer" style="display: none;">
+                                    <h6 class="text-muted mb-3 mt-4"><i class="fas fa-hourglass-start"></i> 1ère Plage Horaire</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            {{ form_label(form.startTime) }}
+                                            {{ form_widget(form.startTime) }}
+                                            {{ form_errors(form.startTime) }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            {{ form_label(form.endTime) }}
+                                            {{ form_widget(form.endTime) }}
+                                            {{ form_errors(form.endTime) }}
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" id="addSecondSlot" class="form-check-input" {% if business_hour.startTime2 or business_hour.endTime2 %}checked{% endif %}>
+                                        <label class="form-check-label" for="addSecondSlot">Ajouter une 2ème plage horaire</label>
+                                    </div>
+
+                                    <div id="secondTimeSlot" style="display: none;">
+                                        <h6 class="text-muted mb-3 mt-4"><i class="fas fa-hourglass-half"></i> 2ème Plage Horaire</h6>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                {{ form_label(form.startTime2) }}
+                                                {{ form_widget(form.startTime2) }}
+                                                {{ form_errors(form.startTime2) }}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                {{ form_label(form.endTime2) }}
+                                                {{ form_widget(form.endTime2) }}
+                                                {{ form_errors(form.endTime2) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+                                
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ path('app_business_hours_index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save"></i> Enregistrer les horaires
+                                    </button>
+                                </div>
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb"></i> Aide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Conseils :</h6>
+                            <ul class="small text-muted">
+                                <li>Cochez "Ouvert ce jour" pour définir les heures d'ouverture.</li>
+                                <li>Si "Ouvert ce jour" est décoché, toutes les heures seront ignorées.</li>
+                                <li>Vous pouvez ajouter une deuxième plage horaire pour les pauses déjeuner ou autres interruptions.</li>
+                                <li>Assurez-vous que l'heure de fin est postérieure à l'heure de début pour chaque plage.</li>
+                                <li>La deuxième plage doit commencer après la fin de la première.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isOpenCheckbox = document.getElementById('business_hours_isOpen');
+    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+    const startTimeInput = document.getElementById('business_hours_startTime');
+    const endTimeInput = document.getElementById('business_hours_endTime');
+
+    const addSecondSlotCheckbox = document.getElementById('addSecondSlot');
+    const secondTimeSlotDiv = document.getElementById('secondTimeSlot');
+    const startTime2Input = document.getElementById('business_hours_startTime2');
+    const endTime2Input = document.getElementById('business_hours_endTime2');
+
+    function toggleTimeInputs() {
+        if (isOpenCheckbox.checked) {
+            timeSlotsContainer.style.display = 'block';
+            startTimeInput.setAttribute('required', 'required');
+            endTimeInput.setAttribute('required', 'required');
+            
+            // Manage second slot visibility and required state
+            toggleSecondSlotInputs();
+
+        } else {
+            timeSlotsContainer.style.display = 'none';
+            startTimeInput.removeAttribute('required');
+            endTimeInput.removeAttribute('required');
+            startTimeInput.value = ''; // Clear values when closed
+            endTimeInput.value = '';   // Clear values when closed
+
+            // Also clear and disable second slot if main is closed
+            addSecondSlotCheckbox.checked = false;
+            secondTimeSlotDiv.style.display = 'none';
+            startTime2Input.removeAttribute('required');
+            endTime2Input.removeAttribute('required');
+            startTime2Input.value = '';
+            endTime2Input.value = '';
+        }
+    }
+
+    function toggleSecondSlotInputs() {
+        if (addSecondSlotCheckbox.checked && isOpenCheckbox.checked) {
+            secondTimeSlotDiv.style.display = 'block';
+            startTime2Input.setAttribute('required', 'required');
+            endTime2Input.setAttribute('required', 'required');
+        } else {
+            secondTimeSlotDiv.style.display = 'none';
+            startTime2Input.removeAttribute('required');
+            endTime2Input.removeAttribute('required');
+            startTime2Input.value = ''; // Clear values when second slot is not active
+            endTime2Input.value = '';   // Clear values when second slot is not active
+        }
+    }
+
+    // Initial state on page load
+    toggleTimeInputs();
+
+    // Listen for changes on the checkboxes
+    isOpenCheckbox.addEventListener('change', toggleTimeInputs);
+    addSecondSlotCheckbox.addEventListener('change', toggleSecondSlotInputs);
+});
+</script>
+{% endblock %}

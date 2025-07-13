@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation de votre rendez-vous</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color: #f7f7f7; color: #333; line-height: 1.3;">
+    <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+        <tr>
+            <td style="padding: 30px; line-height: 1.4;">
+                <h2 style="color: #2c3e50; margin-top: 0; line-height: 1.2;">Bonjour {{ client.firstName }},</h2>
+
+                <p style="margin-bottom: 10px;">Nous vous confirmons votre rendez-vous avec <strong>{{ professional.firstName }} {{ professional.lastName }}</strong>.</p>
+
+                <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; color: #2c3e50; margin-top: 20px; margin-bottom: 10px; line-height: 1.2;">Détails du rendez-vous</h3>
+                <table style="width: 100%; margin: 10px 0; font-size: 14px; line-height: 1.3;">
+                    <tr>
+                        <td style="padding: 4px 0;"><strong>Objet :</strong></td>
+                        <td style="padding: 4px 0;">{{ appointment.title }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0;"><strong>Date :</strong></td>
+                        <td style="padding: 4px 0;">{{ appointment.startTime|date('d/m/Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0;"><strong>Heure :</strong></td>
+                        <td style="padding: 4px 0;">De {{ appointment.startTime|date('H:i') }} à {{ appointment.endTime|date('H:i') }}</td>
+                    </tr>
+                    {% if appointment.description %}
+                    <tr>
+                        <td style="padding: 4px 0;"><strong>Notes :</strong></td>
+                        <td style="padding: 4px 0;">{{ appointment.description }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if appointment.services is not empty %}
+                    <tr>
+                        <td style="padding: 4px 0; vertical-align: top;"><strong>Services :</strong></td>
+                        <td style="padding: 4px 0;">
+                            <ul style="margin: 0; padding-left: 18px; line-height: 1.3;">
+                                {% for service in appointment.services %}
+                                    <li>{{ service.name }} ({{ service.duration }} min)</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+
+                <p style="margin-top: 20px; margin-bottom: 8px;">Nous avons hâte de vous y retrouver !</p>
+
+                <p style="margin: 0;">Cordialement,</p>
+                <p style="margin: 0;"><strong>L'équipe de {{ professional.businessName }}</strong></p>
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+                <p style="font-size: 11px; color: #999; margin: 0;"><em>Ceci est un e-mail automatique, merci de ne pas y répondre directement.</em></p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

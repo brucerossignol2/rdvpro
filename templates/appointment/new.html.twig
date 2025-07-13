@@ -1,0 +1,280 @@
+{# templates/appointment/new.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Rendez-vous - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                       <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-calendar-plus text-primary"></i>
+                    Créer un nouveau Rendez-vous ou une Indisponibilité
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_appointment_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour au calendrier
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-clipboard-list"></i>
+                                Détails du rendez-vous
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                                <div class="mb-3">
+                                    {{ form_label(form.title) }}
+                                    {{ form_widget(form.title) }}
+                                    {{ form_errors(form.title) }}
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form_label(form.startTime) }}
+                                        {{ form_widget(form.startTime) }}
+                                        {{ form_errors(form.startTime) }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        {{ form_label(form.endTime) }}
+                                        {{ form_widget(form.endTime) }}
+                                        {{ form_errors(form.endTime) }}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form_row(form.isPersonalUnavailability, { 'label_attr': {'class': 'form-check-label'} }) }}
+                                </div>
+
+                                <div id="clientAndServicesFields">
+                                    <div class="mb-3">
+                                        {{ form_label(form.client) }}
+                                        <div class="input-group">
+                                            {{ form_widget(form.client) }}
+                                            {# Changed from button to a link to redirect to client creation page #}
+                                            <a href="{{ path('app_client_new', { 
+                                                'returnToAppointment': 1, 
+                                                'appointmentStart': form.startTime.vars.value ? form.startTime.vars.value|date('Y-m-d\\TH:i') : '', 
+                                                'appointmentEnd': form.endTime.vars.value ? form.endTime.vars.value|date('Y-m-d\\TH:i') : '' 
+                                            }) }}" class="btn btn-outline-primary" id="createClientButton">
+                                                <i class="fas fa-plus"></i> Créer un client
+                                            </a>
+                                        </div>
+                                        {{ form_errors(form.client) }}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form_label(form.services) }}
+                                        {{ form_widget(form.services) }}
+                                        {{ form_errors(form.services) }}
+                                    </div>
+                                </div>
+
+                                {# Moved description field here #}
+                                <div class="mb-3">
+                                    {{ form_label(form.description) }}
+                                    {{ form_widget(form.description, {'attr': {'rows': 2}}) }} {# Reduced height #}
+                                    {{ form_errors(form.description) }}
+                                </div>
+
+                                <hr class="my-4">
+                                
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ path('app_appointment_index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save"></i> Enregistrer le rendez-vous
+                                    </button>
+                                </div>
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb"></i> Aide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Types de créneaux :</h6>
+                            <ul class="small text-muted">
+                                <li>**Rendez-vous client :** Nécessite un client et au moins une prestation.</li>
+                                <li>**Indisponibilité personnelle :** Pour bloquer votre calendrier (ex: pause déjeuner, formation). Ne nécessite ni client ni prestation.</li>
+                            </ul>
+                            <hr>
+                            <h6>Durée :</h6>
+                            <ul class="small text-muted">
+                                <li>La durée du rendez-vous doit être suffisante pour toutes les prestations sélectionnées.</li>
+                                <li>Les rendez-vous doivent respecter vos horaires d'ouverture.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+{# Removed the New Client Modal HTML #}
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isPersonalUnavailabilityCheckbox = document.getElementById('appointment_isPersonalUnavailability');
+    const clientAndServicesFields = document.getElementById('clientAndServicesFields');
+    const clientInput = document.getElementById('appointment_client');
+    const servicesSelect = document.getElementById('appointment_services');
+    const startTimeInput = document.getElementById('appointment_startTime');
+    const endTimeInput = document.getElementById('appointment_endTime');
+
+    // Parse services data passed from the controller
+    const servicesData = {{ servicesData|raw }};
+    const serviceDurations = {};
+    servicesData.forEach(service => {
+        serviceDurations[service.id] = service.duration;
+    });
+
+    function toggleClientAndServicesFields() {
+        if (isPersonalUnavailabilityCheckbox.checked) {
+            clientAndServicesFields.style.display = 'none';
+            clientInput.removeAttribute('required');
+            servicesSelect.removeAttribute('required');
+            // Clear values when hiding
+            clientInput.value = '';
+            Array.from(servicesSelect.options).forEach(option => option.selected = false);
+            updateEndTime(); // Recalculate end time as services are cleared
+        } else {
+            clientAndServicesFields.style.display = 'block';
+            clientInput.setAttribute('required', 'required');
+            servicesSelect.setAttribute('required', 'required');
+        }
+    }
+
+    function updateEndTime() {
+        const startTimeStr = startTimeInput.value;
+        if (!startTimeStr) {
+            endTimeInput.value = '';
+            return;
+        }
+
+        const startTime = new Date(startTimeStr); // Parse start time
+
+        let durationToAdd = 0;
+        if (!isPersonalUnavailabilityCheckbox.checked) {
+            // If it's a client appointment
+            Array.from(servicesSelect.selectedOptions).forEach(option => {
+                const serviceId = option.value;
+                if (serviceDurations[serviceId]) {
+                    durationToAdd += serviceDurations[serviceId];
+                }
+            });
+            // If no services selected, default to 30 minutes for client appointment
+            if (durationToAdd === 0) {
+                durationToAdd = 30;
+            }
+        } else {
+            // For personal unavailability, default to 30 minutes
+            durationToAdd = 30;
+        }
+
+        // Create a new Date object based on startTime to avoid modifying it directly
+        const endTime = new Date(startTime);
+        endTime.setMinutes(startTime.getMinutes() + durationToAdd); // Add duration
+
+        // Format endTime back to 'YYYY-MM-DDTHH:MM' for the input field
+        const year = endTime.getFullYear();
+        const month = String(endTime.getMonth() + 1).padStart(2, '0');
+        const day = String(endTime.getDate()).padStart(2, '0');
+        const hours = String(endTime.getHours()).padStart(2, '0');
+        const minutes = String(endTime.getMinutes()).padStart(2, '0');
+        const formattedEndTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        
+        endTimeInput.value = formattedEndTime;
+    }
+
+    // Initial state on page load
+    toggleClientAndServicesFields();
+    updateEndTime(); // Set initial end time based on pre-filled values or defaults
+
+    // Listen for changes on the checkbox
+    isPersonalUnavailabilityCheckbox.addEventListener('change', toggleClientAndServicesFields);
+    // Listen for changes on start time and services select
+    startTimeInput.addEventListener('change', updateEndTime);
+    servicesSelect.addEventListener('change', updateEndTime);
+
+    {# Removed New Client Modal JavaScript Logic #}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,204 @@
+{# templates/user/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des Utilisateurs - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ADMINISTRATION</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_user_index') }}">
+                            <i class="fas fa-users-cog"></i> Gérer les Utilisateurs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Gérer les Clients
+                        </a>
+                    </li>
+                    {# Add other admin links here if needed #}
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-users-cog text-primary"></i>
+                    Liste des Utilisateurs
+                    <span class="badge bg-primary ms-2">{{ users|length }}</span>
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    {# You might add a button to create a new user here if needed #}
+                    {# <a href="{{ path('app_user_new') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Nouvel Utilisateur
+                    </a> #}
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% if users|length == 0 %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                    <h3 class="text-muted">Aucun utilisateur enregistré</h3>
+                    <p class="text-muted">Commencez par ajouter votre premier utilisateur.</p>
+                </div>
+            {% else %}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table"></i>
+                            Détails des Utilisateurs
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col">Nom Complet</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Entreprise</th>
+                                    <th scope="col">Rôles</th>
+                                    <th scope="col" class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.firstName }} {{ user.lastName }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.businessName }}</td>
+                                        <td>
+                                            {% for role in user.roles %}
+                                                <span class="badge bg-secondary">{{ role }}</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                {# Example actions, uncomment and define routes if needed #}
+                                                {# <a href="{{ path('app_user_show', {'id': user.id}) }}" class="btn btn-outline-info btn-sm" title="Voir"><i class="fas fa-eye"></i></a> #}
+                                                {# <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-outline-primary btn-sm" title="Modifier"><i class="fas fa-edit"></i></a> #}
+                                                {# <button type="button" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="confirmUserDelete({{ user.id }}, '{{ user.fullName|e('js') }}', '{{ csrf_token('delete' ~ user.id) }}')"><i class="fas fa-trash"></i></button> #}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+{# You might need a delete modal for users, similar to clients, if you uncomment the delete button #}
+{#
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirmer la suppression de l'utilisateur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong id="userNameToDelete"></strong> ?</p>
+                <div class="alert alert-warning">
+                    <strong>Attention :</strong> Cette action est irréversible.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteUserForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" id="deleteUserToken">
+                    <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+#}
+
+<style>
+/* Styles from base.html.twig and client index for consistency */
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table-responsive {
+    border-radius: 0 0 .5rem .5rem;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.6em;
+}
+</style>
+{% endblock %} {# Added this missing endblock for body #}
+
+{% block javascripts %}
+<script>
+// If you uncomment user delete, you'll need a similar JS function
+// function confirmUserDelete(userId, userName, csrfToken) {
+//     document.getElementById('userNameToDelete').textContent = userName;
+//     document.getElementById('deleteUserForm').action = '/admin/users/' + userId;
+//     document.getElementById('deleteUserToken').value = csrfToken;
+//     const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+//     modal.show();
+// }
+</script>
+{% endblock %}

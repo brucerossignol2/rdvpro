@@ -1,0 +1,67 @@
+{# templates/client_booking/confirm_booking.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirmer votre rendez-vous - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }} {# Keep parent stylesheets if any #}
+    <style>
+        /* Custom color for the confirmation title */
+        .text-confirmation-primary {
+            color: #3F8574 !important;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4" style="max-width: 600px; margin: auto;">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-confirmation-primary"> {# Applied custom class here #}
+                <i class="fas fa-check-circle me-2"></i> Confirmer votre rendez-vous
+            </h1>
+
+            <p class="lead text-center">Veuillez vérifier les détails de votre réservation :</p>
+
+            <ul class="list-group list-group-flush mb-4">
+                <li class="list-group-item">
+                    <strong>Professionnel :</strong> 
+                    {% if professional.businessName %}
+                        {{ professional.businessName }}
+                    {% else %}
+                        {{ professional.firstName }} {{ professional.lastName }}
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong>Service :</strong> {{ service.name }} ({{ service.duration }} min)
+                </li>
+                <li class="list-group-item">
+                    <strong>Date :</strong> {{ startTime|date('d/m/Y', 'Europe/Paris') }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Heure :</strong> {{ startTime|date('H:i', 'Europe/Paris') }} - {{ endTime|date('H:i', 'Europe/Paris') }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Votre nom :</strong> {{ client.firstName }} {{ client.lastName }}
+                </li>
+            </ul>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ path('app_client_booking_calendar', {'bookingLink': professional.bookingLink, 'serviceId': service.id}) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour au calendrier
+                </a>
+                <form action="{{ path('app_client_booking_confirm', {
+                    'bookingLink': professional.bookingLink,
+                    'serviceId': service.id,
+                    'start': startTime|date('Y-m-d\\TH:i:s'),
+                    'end': endTime|date('Y-m-d\\TH:i:s')
+                }) }}" method="post">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i> Confirmer la réservation
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

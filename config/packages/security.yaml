@@ -1,0 +1,72 @@
+# config/packages/security.yaml
+security:
+    # ... (conservez le reste de votre configuration)
+
+    password_hashers:
+        App\Entity\User: 'auto'
+        App\Entity\Client: 'auto' # Ajoutez cette ligne pour l'entité Client
+
+    providers:
+        # used to reload user from session & other features (e.g. switch_user)
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+        app_client_provider: # Nouveau provider pour les clients
+            entity:
+                class: App\Entity\Client
+                property: email
+        chain_provider: # Définition du chain_provider
+            chain:
+                providers: ['app_user_provider', 'app_client_provider'] # Liste les providers à chaîner
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+        main:
+            lazy: true
+            provider: chain_provider # Utilisez un chain_provider pour combiner les deux
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                enable_csrf: true
+                success_handler: App\Security\LoginSuccessHandler # AJOUTEZ OU MODIFIEZ CETTE LIGNE
+            logout:
+                path: app_logout
+                target: app_login
+            # activate different ways to authenticate
+            # https://symfony.com/doc/current/security.html#the-firewall-authentication-entry-point
+
+            # enable_remember_me: true
+            # https://symfony.com/doc/current/security/remember_me.html
+
+    # Easy way to control access for large parts of your app
+    # requires access_control to be defined in backend/config/packages/security.yaml
+    access_control:
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS } # Pour l'inscription des pros
+        - { path: ^/register/client, roles: PUBLIC_ACCESS } # Pour l'inscription des clients
+        - { path: ^/verify/email, roles: PUBLIC_ACCESS } # Pour la vérification des emails des pros
+        - { path: ^/verify/client/email, roles: PUBLIC_ACCESS } # Pour la vérification des emails des clients
+        - { path: ^/reset-password, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/profile, roles: ROLE_USER } # Seuls les ROLE_USER (pros) accèdent au profil pro
+        - { path: ^/client, roles: ROLE_USER } # <--- MODIFICATION ICI : Utilisez ^/client pour couvrir toutes les routes du ClientController
+        - { path: ^/appointments, roles: ROLE_USER }
+        - { path: ^/business-hours, roles: ROLE_USER }
+        - { path: ^/services, roles: ROLE_USER }
+        - { path: ^/unavailability, roles: ROLE_USER }
+        # Les clients (ROLE_CLIENT) n'auront accès qu'aux pages publiques et à leur processus de réservation/gestion de rdv
+        # Vous devrez définir des règles spécifiques pour les pages accessibles aux clients authentifiés.
+        # Par exemple, si vous avez une page de tableau de bord client :
+        # - { path: ^/client/dashboard, roles: ROLE_CLIENT }
+        # - { path: ^/client/appointments, roles: ROLE_CLIENT }
+        - { path: ^/my-professional-appointments, roles: ROLE_USER } # Assurez-vous que cette route est aussi couverte
+        - { path: ^/my-appointments, roles: ROLE_CLIENT } # Pour les rendez-vous des clients
+        - { path: ^/my-profile, roles: ROLE_CLIENT } # Pour le profil des clients
+        - { path: ^/, roles: PUBLIC_ACCESS } # Permet l'accès public à la page d'accueil et aux pages des professionnels
+
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_USER]
+        # ROLE_USER: [ROLE_CLIENT] # Cette ligne a été supprimée pour éviter la confusion entre entités User et Client.

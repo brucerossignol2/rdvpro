@@ -1,0 +1,247 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Client - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION CLIENTS</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_client_edit', {'id': client.id}) }}">
+                            <i class="fas fa-user-edit"></i> Modifier client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-user-edit text-primary"></i>
+                    Modifier le Client: {{ client.fullName }}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user-edit"></i>
+                                Informations du client
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                            
+                            <div class="row">
+                                <!-- Informations personnelles -->
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fas fa-user"></i> Informations personnelles
+                                    </h6>
+                                    
+                                    <div class="mb-3">
+                                        {# Utiliser form.lastName #}
+                                        {{ form_label(form.lastName, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                        {{ form_widget(form.lastName) }}
+                                        {{ form_errors(form.lastName) }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        {# Utiliser form.firstName #}
+                                        {{ form_label(form.firstName, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                        {{ form_widget(form.firstName) }}
+                                        {{ form_errors(form.firstName) }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        {{ form_label(form.email, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                        {{ form_widget(form.email) }}
+                                        {{ form_errors(form.email) }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        {{ form_label(form.telephone, null, {'label_attr': {'class': 'form-label'}}) }}
+                                        {{ form_widget(form.telephone) }}
+                                        {{ form_errors(form.telephone) }}
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle"></i>
+                                            Format : 01 23 45 67 89 (optionnel)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Adresse -->
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fas fa-map-marker-alt"></i> Adresse
+                                    </h6>
+                                    
+                                    <div class="mb-3">
+                                        {{ form_label(form.rue, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                        {{ form_widget(form.rue) }}
+                                        {{ form_errors(form.rue) }}
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                {{ form_label(form.codePostal, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                                {{ form_widget(form.codePostal) }}
+                                                {{ form_errors(form.codePostal) }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="mb-3">
+                                                {{ form_label(form.ville, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                                {{ form_widget(form.ville) }}
+                                                {{ form_errors(form.ville) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+                            
+                            <!-- Boutons d'action -->
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ path('app_client_index') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> Enregistrer les modifications
+                                </button>
+                            </div>
+
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aide -->
+                <div class="col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb"></i> Aide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Champs obligatoires :</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> Nom et prénom</li>
+                                <li><i class="fas fa-check text-success"></i> Email</li>
+                                <li><i class="fas fa-check text-success"></i> Adresse complète</li>
+                            </ul>
+                            
+                            <hr>
+                            
+                            <h6>Conseils :</h6>
+                            <ul class="small text-muted">
+                                <li>L'email servira pour les confirmations de RDV</li>
+                                <li>Le téléphone est optionnel mais recommandé</li>
+                                <li>L'adresse doit être complète pour les services à domicile</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<style>
+/* Styles généraux du tableau de bord et de la barre latérale */
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Styles des cartes et formulaires */
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/* Styles des boutons */
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, .3);
+}
+
+.alert {
+    border: none;
+    border-radius: .5rem;
+}
+
+/* Ajustements pour les icônes Font Awesome */
+.fas {
+    margin-right: 0.5rem;
+}
+</style>
+{% endblock %}

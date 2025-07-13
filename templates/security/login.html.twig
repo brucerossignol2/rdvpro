@@ -1,0 +1,115 @@
+{# templates/security/login.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 56px);">
+    <div class="card shadow-lg p-4" style="max-width: 600px; width: 100%;"> {# Increased max-width to accommodate two columns #}
+        <div class="card-body">
+            <h1 class="h3 mb-3 fw-normal text-center text-primary">
+                <i class="fas fa-lock me-2"></i> Veuillez vous connecter
+            </h1>
+
+            {# Affichage des messages flash (pour le popup après inscription) #}
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> {{ error.messageKey|trans(error.messageData, 'security') }}
+                </div>
+            {% endif %}
+
+            <div class="row"> {# Added a row for two columns #}
+                <div class="col-md-6 border-end pe-md-4"> {# Login column #}
+                    <h2 class="h5 mb-3 text-center text-secondary">Connexion client ou pro</h2>
+                    <form action="{{ path('app_login') }}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="email" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                        <div class="form-check mb-3">
+                            <input type="checkbox" id="remember_me" name="_remember_me" class="form-check-input">
+                            <label class="form-check-label" for="remember_me">Se souvenir de moi</label>
+                        </div>
+
+                        <button class="w-100 btn btn-lg btn-primary" type="submit">
+                            <i class="fas fa-sign-in-alt me-2"></i> Connexion
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-md-6 ps-md-4 d-flex flex-column justify-content-center align-items-center"> {# Registration column #}
+                    <h2 class="h5 mb-3 text-center text-secondary">Pas encore de compte ?</h2>
+                    <p class="text-center">Si vous êtes un client cherchant à prendre rendez-vous, créez votre compte client ici.</p>
+                    {# MODIFICATION ICI: Afficher le lien d'inscription client uniquement si bookingLink est défini et non vide #}
+                    {% if bookingLink is defined and bookingLink is not empty %}
+                        <a href="{{ path('app_client_register', {'bookingLink': bookingLink}) }}" class="w-100 btn btn-lg btn-success mb-3">
+                            <i class="fas fa-user-plus me-2"></i> Inscription client
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info w-100 text-center" role="alert">
+                            Pour vous inscrire en tant que client, veuillez passer par la page de réservation d'un professionnel.
+                        </div>
+                    {% endif %}
+                    <hr class="w-100 my-3">
+                    <p class="text-center">Si vous êtes un professionnel souhaitant proposer vos services, inscrivez-vous en tant que pro ici.</p>
+                    <a href="{{ path('app_register') }}" class="w-100 btn btn-lg btn-info">
+                        <i class="fas fa-briefcase me-2"></i> Inscription pro
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #e9ecef; /* Light gray background for login page */
+    }
+    .card {
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .input-group-text {
+        background-color: #e9ecef;
+        border-right: none;
+    }
+    .form-control {
+        border-left: none;
+    }
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+    @media (max-width: 767.98px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1.5rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+    }
+</style>
+{% endblock %}

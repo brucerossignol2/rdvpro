@@ -1,0 +1,79 @@
+{# templates/registration/register.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container d-flex justify-content-center align-items-center my-4">
+    <div class="card shadow-lg p-4" style="max-width: 700px; width: 100%;">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-primary">
+                <i class="fas fa-user-plus me-2"></i> Créez votre compte professionnel
+            </h1>
+
+            {{ form_start(registrationForm, {'attr': {'novalidate': 'novalidate'}}) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3 text-muted">Informations personnelles</h5>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.firstName) }}
+                            {{ form_widget(registrationForm.firstName) }}
+                            {{ form_errors(registrationForm.firstName) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.lastName) }}
+                            {{ form_widget(registrationForm.lastName) }}
+                            {{ form_errors(registrationForm.lastName) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.email) }}
+                            {{ form_widget(registrationForm.email) }}
+                            {{ form_errors(registrationForm.email) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.plainPassword) }}
+                            {{ form_widget(registrationForm.plainPassword) }}
+                            {{ form_errors(registrationForm.plainPassword) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3 text-muted">Informations de l'entreprise</h5>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.businessName) }}
+                            {{ form_widget(registrationForm.businessName) }}
+                            {{ form_errors(registrationForm.businessName) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.businessAddress) }}
+                            {{ form_widget(registrationForm.businessAddress) }}
+                            {{ form_errors(registrationForm.businessAddress) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.businessPhone) }}
+                            {{ form_widget(registrationForm.businessPhone) }}
+                            {{ form_errors(registrationForm.businessPhone) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.businessEmail) }}
+                            {{ form_widget(registrationForm.businessEmail) }}
+                            {{ form_errors(registrationForm.businessEmail) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    {{ form_row(registrationForm.agreeTerms) }}
+                </div>
+
+                <button type="submit" class="w-100 btn btn-lg btn-primary">
+                    <i class="fas fa-user-plus me-2"></i> S'inscrire
+                </button>
+            {{ form_end(registrationForm) }}
+
+            <p class="mt-3 mb-0 text-muted text-center">
+                Déjà un compte ? <a href="{{ path('app_login') }}">Connectez-vous ici</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{# templates/profile/presentation.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Ma Présentation - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>MON COMPTE</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
+                            <i class="fas fa-user-cog"></i> Mes Informations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_profile_presentation') }}">
+                            <i class="fas fa-address-card"></i> Ma Présentation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
+                            <i class="fas fa-clock"></i> Mes Horaires
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
+                            <i class="fas fa-briefcase"></i> Mes Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
+                            <i class="fas fa-key"></i> Mot de passe
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>ACCÈS RAPIDE</span>
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-address-card text-primary"></i>
+                    Ma Présentation
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_profile_edit') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour au profil
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Formulaire de présentation -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                Votre Présentation
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(presentationForm, {'attr': {'novalidate': 'novalidate'}}) }}
+                                <div class="mb-3">
+                                    {{ form_label(presentationForm.presentationDescription, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                    {{ form_widget(presentationForm.presentationDescription, {'attr': {'class': 'form-control w-100'}}) }}
+                                    {{ form_errors(presentationForm.presentationDescription) }}
+                                </div>
+                                <div class="row"> {# Début de la mise en page à deux colonnes pour les images #}
+                                    <div class="col-md-6"> {# Première colonne pour l'image de présentation #}
+                                        <div class="mb-3">
+                                            {{ form_label(presentationForm.presentationImageFile, 'Photo représentative (optionnel)', {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                            {{ form_widget(presentationForm.presentationImageFile) }}
+                                            {{ form_errors(presentationForm.presentationImageFile) }}
+
+                                            {# Afficher l'image actuelle si elle existe #}
+                                            {% if user.presentationImage %}
+                                                <div class="mt-2 text-center">
+                                                    <p class="mb-1 text-muted small">Image actuelle :</p>
+                                                    <img src="{{ asset('uploads/images/' ~ user.presentationImage) }}" alt="Image de présentation" class="img-thumbnail" style="max-height: 150px; object-fit: cover;">
+                                                </div>
+                                            {% else %}
+                                                <div class="mt-2 text-center text-muted small">
+                                                    Aucune image de présentation enregistrée.
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6"> {# Deuxième colonne pour le logo de présentation #}
+                                        <div class="mb-3">
+                                            {{ form_label(presentationForm.presentationLogoFile, 'Logo de la société (optionnel)', {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                            {{ form_widget(presentationForm.presentationLogoFile) }}
+                                            {{ form_errors(presentationForm.presentationLogoFile) }}
+
+                                            {# Afficher le logo actuel si elle existe #}
+                                            {% if user.presentationLogo %}
+                                                <div class="mt-2 text-center">
+                                                    <p class="mb-1 text-muted small">Logo actuel :</p>
+                                                    <img src="{{ asset('uploads/images/' ~ user.presentationLogo) }}" alt="Logo de la société" class="img-thumbnail" style="max-height: 150px; object-fit: cover;">
+                                                </div>
+                                            {% else %}
+                                                <div class="mt-2 text-center text-muted small">
+                                                    Aucun logo de société enregistré.
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div> {# Fin de la mise en page à deux colonnes pour les images #}
+
+                                <hr class="my-4">
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save me-2"></i> Enregistrer la présentation
+                                    </button>
+                                </div>
+                            {{ form_end(presentationForm) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb"></i> Aide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Description de votre entreprise :</h6>
+                            <ul class="small text-muted">
+                                <li>Utilisez cet espace pour décrire votre activité, vos valeurs, et ce qui vous distingue.</li>
+                                <li>Cette description sera visible par vos clients sur votre page de réservation.</li>
+                            </ul>
+                            <hr>
+                            <h6>Photo représentative :</h6>
+                            <ul class="small text-muted">
+                                <li>Téléchargez une image qui représente votre entreprise ou votre marque.</li>
+                                <li>Elle sera affichée sur votre page de réservation pour donner une touche professionnelle.</li>
+                            </ul>
+                             <hr>
+                            <h6>Logo de la société :</h6>
+                            <ul class="small text-muted">
+                                <li>Téléchargez le logo de votre entreprise.</li>
+                                <li>Il sera utilisé sur votre page de réservation pour renforcer votre identité visuelle.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

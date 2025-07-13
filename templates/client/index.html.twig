@@ -1,0 +1,443 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des Clients - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION CLIENTS</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>STATISTIQUES</span>
+                </h6>
+                <div class="px-3">
+                    <div class="card border-info mb-2">
+                        <div class="card-body text-center py-2">
+                            <h3 class="text-info mb-0">{{ clients|length }}</h3>
+                            <small class="text-muted">Client{{ clients|length > 1 ? 's' : '' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-users text-primary"></i>
+                    Liste des Clients
+                    <span class="badge bg-primary ms-2">{{ clients|length }}</span>
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ path('app_client_new') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Nouveau client
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Barre de recherche -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Rechercher un client (nom, prénom, email, ville...)">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <select class="form-select" id="sortSelect">
+                        <option value="name">Trier par nom</option>
+                        <option value="email">Trier par email</option>
+                        <option value="city">Trier par ville</option>
+                        <option value="date">Trier par date d'ajout</option>
+                    </select>
+                </div>
+            </div>
+
+            {% if clients|length == 0 %}
+                <!-- Message si aucun client -->
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h3 class="text-muted">Aucun client enregistré</h3>
+                    <p class="text-muted">Commencez par ajouter votre premier client pour gérer vos rendez-vous.</p>
+                    <a href="{{ path('app_client_new') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Ajouter un client
+                    </a>
+                </div>
+            {% else %}
+                <!-- Tableau des clients -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table"></i>
+                            Liste des clients
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="clientsTable">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col">
+                                        <i class="fas fa-user"></i>
+                                        Client
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-envelope"></i>
+                                        Contact
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        Adresse
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-calendar-plus"></i>
+                                        Inscrit le
+                                    </th>
+                                    <th scope="col" class="text-center">
+                                        <i class="fas fa-calendar-check"></i>
+                                        RDV
+                                    </th>
+                                    <th scope="col" class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in clients %}
+                                    <tr class="client-row" data-client-id="{{ client.id }}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-3">
+                                                    {# Utilisez firstName et lastName #}
+                                                    {{ client.firstName|slice(0,1)|upper }}{{ client.lastName|slice(0,1)|upper }}
+                                                </div>
+                                                <div>
+                                                    {# Utilisez getFullName() ou firstName ~ ' ' ~ lastName #}
+                                                    <strong>{{ client.fullName }}</strong>
+                                                    {% if client.telephone %}
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-phone"></i>
+                                                            {{ client.telephone }}
+                                                        </small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="mailto:{{ client.email }}" class="text-decoration-none">
+                                                <i class="fas fa-envelope text-primary"></i>
+                                                {{ client.email }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div class="address-info">
+                                                {# Utilisez rue, codePostal et ville #}
+                                                <div>{{ client.rue }}</div>
+                                                <small class="text-muted">
+                                                    {{ client.codePostal }} {{ client.ville }}
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">
+                                                {{ client.createdAt|date('d/m/Y', 'Europe/Paris') }}
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ client.createdAt|date('H:i', 'Europe/Paris') }}
+                                            </small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">
+                                                {{ client.appointments|length }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ path('app_client_show', {'id': client.id}) }}" 
+                                                   class="btn btn-outline-info btn-sm" 
+                                                   title="Voir les détails">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ path('app_client_edit', {'id': client.id}) }}" 
+                                                   class="btn btn-outline-primary btn-sm" 
+                                                   title="Modifier">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-outline-danger btn-sm" 
+                                                        title="Supprimer"
+                                                        onclick="confirmDelete({{ client.id }}, '{{ client.fullName|e('js') }}', '{{ csrf_token('delete' ~ client.id) }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination (si nécessaire plus tard) -->
+                <nav aria-label="Navigation des pages" class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Affichage de {{ clients|length }} client{{ clients|length > 1 ? 's' : '' }}
+                        </div>
+                        <!-- Pagination sera ajoutée ici plus tard si nécessaire -->
+                    </div>
+                </nav>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le client <strong id="clientNameToDelete"></strong> ?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Cette action est irréversible et supprimera également tous les rendez-vous associés à ce client.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" id="deleteToken">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.client-row:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.btn-group .btn {
+    margin: 0 2px;
+}
+
+.address-info {
+    line-height: 1.3;
+}
+
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+.table-responsive {
+    border-radius: 0 0 .5rem .5rem;
+}
+
+/* Animation pour les lignes du tableau */
+.client-row {
+    transition: all 0.2s ease-in-out;
+}
+
+.client-row:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Style pour la recherche */
+.form-control:focus, .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .avatar-circle {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+    
+    .table td, .table th {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+// Fonction de recherche en temps réel
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.client-row');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Fonction de tri
+document.getElementById('sortSelect').addEventListener('change', function() {
+    const sortBy = this.value;
+    const tbody = document.querySelector('#clientsTable tbody');
+    const rows = Array.from(tbody.querySelectorAll('.client-row'));
+    
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(sortBy) {
+            case 'name':
+                // Utiliser le texte du strong qui contient fullName
+                aValue = a.querySelector('strong').textContent;
+                bValue = b.querySelector('strong').textContent;
+                break;
+            case 'email':
+                aValue = a.querySelector('a[href^="mailto:"]').textContent;
+                bValue = b.querySelector('a[href^="mailto:"]').textContent;
+                break;
+            case 'city':
+                // Utiliser le texte de la small qui contient codePostal et ville
+                aValue = a.querySelector('.address-info small').textContent;
+                bValue = b.querySelector('.address-info small').textContent;
+                break;
+            case 'date':
+                aValue = a.querySelector('td:nth-child(4) span').textContent;
+                bValue = b.querySelector('td:nth-child(4) span').textContent;
+                break;
+        }
+        
+        return aValue.localeCompare(bValue);
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+});
+
+// Fonction de confirmation de suppression
+function confirmDelete(clientId, clientName, csrfToken) {
+    document.getElementById('clientNameToDelete').textContent = clientName;
+    document.getElementById('deleteForm').action = '/client/' + clientId;
+    document.getElementById('deleteToken').value = csrfToken;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Animation d'entrée pour les lignes
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('.client-row');
+    rows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            row.style.transition = 'all 0.3s ease-in-out';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+</script>
+{% endblock %}

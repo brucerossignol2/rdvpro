@@ -1,0 +1,125 @@
+{# templates/professional_appointment_list/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Rendez-vous Futurs - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <h1 class="h2 mb-4 text-center text-primary">
+        <i class="fas fa-calendar-alt me-2"></i> Mes Rendez-vous Futurs
+    </h1>
+
+    {# Ajout pour afficher les messages flash (succès ou erreur) #}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {% if appointments is empty %}
+        <div class="alert alert-info text-center" role="alert">
+            Vous n'avez aucun rendez-vous futur ou en cours pour le moment.
+        </div>
+    {% else %}
+        {# Get current datetime for comparison #}
+        {% set now = 'now'|date('U') %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for item in appointments %}
+                {% set appointment = item.appointment %}
+                {% set deleteToken = item.deleteToken %}
+                {% set appointmentStart = appointment.startTime|date('U') %}
+                {% set appointmentEnd = appointment.endTime|date('U') %}
+                {% set isInProgress = (now >= appointmentStart and now <= appointmentEnd) %}
+
+                <div class="col">
+                    <div class="card h-100 shadow-sm {% if isInProgress %}border-success{% endif %}"> {# Add border for in-progress #}
+                        <div class="card-header {% if isInProgress %}bg-success{% else %}bg-primary{% endif %} text-white">
+                            <h5 class="card-title mb-0">
+                                {{ appointment.title }}
+                                {% if isInProgress %}
+                                    <span class="badge bg-light text-success ms-2">En cours</span> {# Indicator for in-progress #}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong><i class="fas fa-calendar-day me-2"></i>Date :</strong> {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}<br>
+                                <strong><i class="fas fa-clock me-2"></i>Heure :</strong> {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
+                            </p>
+                            
+                            {% if not appointment.isPersonalUnavailability() %}
+                                {% if appointment.client %}
+                                    <hr>
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        <i class="fas fa-user me-2"></i> Client
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>Nom :</strong> {{ appointment.client.fullName }}<br>
+                                        <strong>Email :</strong> <a href="mailto:{{ appointment.client.email }}">{{ appointment.client.email }}</a><br>
+                                        {% if appointment.client.telephone %} {# Corrected: using 'telephone' property #}
+                                            <strong>Téléphone :</strong> <a href="tel:{{ appointment.client.telephone|replace({' ': ''}) }}">{{ appointment.client.telephone }}</a>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+
+                                {% if appointment.services is not empty %}
+                                    <hr>
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        <i class="fas fa-briefcase me-2"></i> Prestations
+                                    </h6>
+                                    <ul>
+                                        {% for service in appointment.services %}
+                                            <li>
+                                                {{ service.name }} ({{ service.duration }} min)
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-handshake me-1"></i> 
+                                                    {% if service.appointmentType == 'home_service' %}
+                                                        À domicile
+                                                    {% elseif service.appointmentType == 'office_service' %}
+                                                        Chez le professionnel / au cabinet
+                                                    {% elseif service.appointmentType == 'video_service' %}
+                                                        Par visioconférence
+                                                    {% elseif service.appointmentType == 'phone_service' %}
+                                                        Par téléphone
+                                                    {% else %}
+                                                        Non spécifié
+                                                    {% endif %}
+                                                </small>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            {% else %}
+                                <p class="card-text text-danger">
+                                    <i class="fas fa-ban me-2"></i> Ceci est une indisponibilité personnelle.
+                                </p>
+                            {% endif %}
+                            
+                            {% if appointment.description %}
+                                <p class="card-text"><strong><i class="fas fa-info-circle me-2"></i>Description :</strong> {{ appointment.description }}</p>
+                            {% endif %}
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <a href="{{ path('app_appointment_edit', {'id': appointment.id}) }}" class="btn btn-sm btn-outline-primary me-2">
+                                    <i class="fas fa-edit me-1"></i> Modifier
+                                </a>
+                                <form method="post" action="{{ path('app_appointment_delete', {'id': appointment.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');">
+                                    <input type="hidden" name="_token" value="{{ deleteToken }}">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash-alt me-1"></i> Supprimer
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
