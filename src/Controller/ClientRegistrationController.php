@@ -17,6 +17,9 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use SymfonyCasts\Bundle\VerifyEmail\VerifyEmailHelperInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
+use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
+use Symfony\Component\Mailer\Transport; // Import Transport
+use Symfony\Component\Mailer\Mailer; // Import Mailer
 
 class ClientRegistrationController extends AbstractController
 {
@@ -33,7 +36,7 @@ class ClientRegistrationController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $userPasswordHasher,
         EntityManagerInterface $entityManager,
-        MailerInterface $mailer,
+        MailerInterface $mailer, // Keep MailerInterface for type hinting, but we'll instantiate our own Mailer
         UserRepository $userRepository, // Inject UserRepository
         ClientRepository $clientRepository // Inject ClientRepository
     ): Response {
@@ -100,26 +103,40 @@ class ClientRegistrationController extends AbstractController
             $signatureExpiresAt = $signatureComponents->getExpiresAt();
 
             // Send email
-            $emailMessage = (new Email())
-                ->from('no-reply@rdvpro.com') // Replace with your sender email
-                ->to($client->getEmail())
-                ->subject('Veuillez confirmer votre adresse e-mail pour RDV Pro')
-                ->html($this->renderView('client_registration/confirmation_email.html.twig', [
-                    'signedUrl' => $signatureComponents->getSignedUrl(),
-                    'client' => $client,
-                    'professional' => $professional,
-                    'expiresAt' => $signatureExpiresAt, // Pass expiresAt to the template
-                ]));
-
             try {
-                $mailer->send($emailMessage);
+                // Load .env file
+                $dotenv = new Dotenv();
+                // Adjust path as needed for your project structure.
+                $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
+
+                $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+
+                if (!$mailerDsn) {
+                    throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                }
+
+                $transport = Transport::fromDsn($mailerDsn);
+                $customMailer = new Mailer($transport); // Use a different variable name to avoid conflict with injected $mailer
+
+                $emailMessage = (new Email())
+                    ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr') // Replace with your sender email, or from .env
+                    ->to($client->getEmail())
+                    ->subject('Veuillez confirmer votre adresse e-mail pour RDV Pro')
+                    ->html($this->renderView('client_registration/confirmation_email.html.twig', [
+                        'signedUrl' => $signatureComponents->getSignedUrl(),
+                        'client' => $client,
+                        'professional' => $professional,
+                        'expiresAt' => $signatureExpiresAt, // Pass expiresAt to the template
+                    ]));
+
+                $customMailer->send($emailMessage); // Send using the custom mailer
                 $this->addFlash('success', 'Votre compte a été créé ! Veuillez vérifier votre email pour le lien de confirmation.');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Votre compte a été créé, mais l\'e-mail de confirmation n\'a pas pu être envoyé. Erreur: ' . $e->getMessage());
             }
 
-            // Rediriger vers la page du professionnel après l'inscription (en attente de vérification d'email)
-            return $this->redirectToRoute('app_professional_public_show', ['bookingLink' => $professional->getBookingLink()]);
+            // MODIFICATION: Rediriger vers la page de connexion avec le paramètre bookingLink
+            return $this->redirectToRoute('app_login', ['bookingLink' => $professional->getBookingLink()]);
         }
 
         return $this->render('client_registration/register.html.twig', [
@@ -156,13 +173,18 @@ class ClientRegistrationController extends AbstractController
 
         $this->addFlash('success', 'Votre adresse e-mail a été vérifiée avec succès ! Vous pouvez maintenant vous connecter.');
 
-        // MODIFICATION ICI: Rediriger vers la page du professionnel après une vérification d'email réussie
-        // Assurez-vous que le client a bien un professionnel associé avant de tenter de récupérer le bookingLink
+        // MODIFICATION: Rediriger vers la page de connexion avec le paramètre bookingLink après vérification d'email
         if ($client->getProfessional()) {
-            return $this->redirectToRoute('app_professional_public_show', ['bookingLink' => $client->getProfessional()->getBookingLink()]);
+            return $this->redirectToRoute('app_login', ['bookingLink' => $client->getProfessional()->getBookingLink()]);
         } else {
             // Fallback si, pour une raison quelconque, le professionnel n'est pas trouvé (ce qui ne devrait pas arriver)
             return $this->redirectToRoute('app_login');
         }
+    }
+
+    #[Route('/legal/terms-client', name: 'app_legal_terms_client')]
+    public function termsClient(): Response
+    {
+        return $this->render('legal/terms_client.html.twig');
     }
 }

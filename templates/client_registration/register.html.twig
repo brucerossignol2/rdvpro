@@ -67,7 +67,11 @@
                 </div>
 
                 <div class="mb-3 form-check">
-                    {{ form_row(registrationForm.agreeTerms) }}
+                    {{ form_widget(registrationForm.agreeTerms) }}
+                    <label class="form-check-label" for="{{ registrationForm.agreeTerms.vars.id }}">
+                        J'accepte les <a href="{{ path('app_legal_terms_client') }}" target="_blank" class="text-primary">conditions d'utilisation</a>
+                    </label>
+                    {{ form_errors(registrationForm.agreeTerms) }}
                 </div>
 
                 <button type="submit" class="w-100 btn btn-lg btn-primary">

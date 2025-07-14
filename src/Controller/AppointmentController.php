@@ -312,7 +312,7 @@ class AppointmentController extends AbstractController
                     $mailer = new Mailer($transport);
 
                     $email = (new Email())
-                        ->from('info@br-net.fr') // You can also get this from .env if needed
+                        ->from('rdvpro@brelect.fr') // You can also get this from .env if needed
                         ->to($client->getEmail())
                         ->subject('Confirmation de votre rendez-vous avec ' . $professional->getFirstName() . ' ' . $professional->getLastName())
                         ->html($this->renderView(

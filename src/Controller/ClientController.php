@@ -118,7 +118,7 @@ class ClientController extends AbstractController
 
                     $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
                     $email = (new Email())
-                        ->from('rdvpro@brelect.fr', 'NO REPLY')
+                        ->from('rdvpro@brelect.fr')
                         ->to($client->getEmail())
                         ->subject('Votre compte sur RDV Pro a été créé !')
                         ->html(
