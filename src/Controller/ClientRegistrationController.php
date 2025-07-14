@@ -29,11 +29,7 @@ class ClientRegistrationController extends AbstractController
     {
         $this->verifyEmailHelper = $verifyEmailHelper;
     }
-
-    /**
-     * Route pour l'inscription d'un client via le lien public du professionnel
-     * @Route("/{bookingLink}/register/client", name="app_client_register")
-     */
+#[Route('/{bookingLink}/register/client', name: 'app_client_register')]
     public function register(
         Request $request,
         UserPasswordHasherInterface $userPasswordHasher,
@@ -147,9 +143,7 @@ class ClientRegistrationController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/verify/client/email", name="app_verify_client_email")
-     */
+    #[Route('/verify/client/email', name: 'app_verify_client_email')]
     public function verifyClientEmail(Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): Response
     {
         // We need to fetch the Client entity, not User
@@ -186,10 +180,8 @@ class ClientRegistrationController extends AbstractController
         }
     }
 
-    /**
-     * @Route("/legal/terms-client", name="app_legal_terms_client")
-     */
-    public function termsClient(): Response
+    #[Route('/legal/terms-client', name: 'app_legal_terms_client')]
+      public function termsClient(): Response
     {
         return $this->render('legal/terms_client.html.twig');
     }

@@ -65,8 +65,9 @@
                     <h2 class="h5 mb-3 text-center text-secondary">Pas encore de compte ?</h2>
                     <p class="text-center">Si vous êtes un client cherchant à prendre rendez-vous, créez votre compte client ici.</p>
                     {# MODIFICATION ICI: Afficher le lien d'inscription client uniquement si bookingLink est défini et non vide #}
+                    
                     {% if bookingLink is defined and bookingLink is not empty %}
-                        <a href="{{ path('app_client_register', {'bookingLink': bookingLink}) }}" class="w-100 btn btn-lg btn-success mb-3">
+                        <a href="{{ url('app_client_register', {'bookingLink': bookingLink}) }}" class="w-100 btn btn-lg btn-success mb-3">
                             <i class="fas fa-user-plus me-2"></i> Inscription client
                         </a>
                     {% else %}
@@ -74,6 +75,8 @@
                             Pour vous inscrire en tant que client, veuillez passer par la page de réservation d'un professionnel.
                         </div>
                     {% endif %}
+                    
+                    
                     <hr class="w-100 my-3">
                     <p class="text-center">Si vous êtes un professionnel souhaitant proposer vos services, inscrivez-vous en tant que pro ici.</p>
                     <a href="{{ path('app_register') }}" class="w-100 btn btn-lg btn-info">
