@@ -12,7 +12,7 @@ git reset --hard
 git clean -fd
 git pull origin main
 
-echo "📦 Installation des dépendances PHP (composer)..."
+echo "📦 Installation des dépendances PHP sur OVH (composer)..."
 composer install --no-dev --optimize-autoloader
 
 echo "🧹 Nettoyage du cache Symfony..."
