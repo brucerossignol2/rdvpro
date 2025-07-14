@@ -126,7 +126,7 @@ class ClientRegistrationController extends AbstractController
                         'signedUrl' => $signatureComponents->getSignedUrl(),
                         'client' => $client,
                         'professional' => $professional,
-                        'expiresAt' => $signatureExpiresAt, // Pass expiresAt to the template
+                        'expiresAt' => $signatureExpiresAt, 
                     ]));
 
                 $customMailer->send($emailMessage); // Send using the custom mailer
