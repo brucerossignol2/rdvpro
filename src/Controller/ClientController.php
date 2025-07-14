@@ -19,6 +19,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface; // Impo
 use Symfony\Component\Mailer\MailerInterface; // Import MailerInterface
 use Symfony\Component\Mime\Email; // Import Email for sending
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface; // Import UrlGeneratorInterface
+use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
+use Symfony\Component\Mailer\Transport; // Import Transport
+use Symfony\Component\Mailer\Mailer; // Import Mailer
 
 #[Route('/client')]
 #[IsGranted('ROLE_USER')] // Restrict access to all client routes to authenticated users
@@ -98,25 +101,48 @@ class ClientController extends AbstractController
             $entityManager->flush();
 
             // --- Send email to the new client ---
-            $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
-            $email = (new Email())
-                ->from($professional->getEmail()) // Use professional's email as sender
-                ->to($client->getEmail())
-                ->subject('Votre compte RDV Pro a été créé !')
-                ->html(
-                    '<p>Bonjour ' . $client->getFirstName() . ',</p>' .
-                    '<p>Votre compte sur RDV Pro a été créé par ' . $professionalNameForEmail . '.</p>' .
-                    '<p>Votre mot de passe temporaire est : <strong>' . $randomPassword . '</strong></p>' .
-                    '<p>Veuillez vous connecter et changer votre mot de passe dès que possible.</p>' .
-                    '<p>Lien de connexion : <a href="' . $this->urlGenerator->generate('app_login', [], UrlGeneratorInterface::ABSOLUTE_URL) . '">Se connecter</a></p>' .
-                    '<p>Cordialement,</p>' .
-                    '<p>L\'équipe RDV Pro</p>'
-                );
+            try {
+                if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
+                    // Load .env file
+                    $dotenv = new Dotenv();
+                    // Adjust path as needed for your project structure.
+                    // dirname(__DIR__, 2) goes up two directories from the current file (src/Controller)
+                    // to the project root where .env is usually located.
+                    $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
-            $this->mailer->send($email);
+                    $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+
+                    if (!$mailerDsn) {
+                        throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                    }
+
+                    $transport = Transport::fromDsn($mailerDsn);
+                    $mailer = new Mailer($transport);
+
+                    $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
+                    $email = (new Email())
+                        ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'info@br-net.fr') // Use professional's email as sender, or from .env
+                        ->to($client->getEmail())
+                        ->subject('Votre compte RDV Pro a été créé !')
+                        ->html(
+                            '<p>Bonjour ' . $client->getFirstName() . ',</p>' .
+                            '<p>Votre compte sur RDV Pro a été créé par ' . $professionalNameForEmail . '.</p>' .
+                            '<p>Votre mot de passe temporaire est : <strong>' . $randomPassword . '</strong></p>' .
+                            '<p>Veuillez vous connecter et changer votre mot de passe dès que possible.</p>' .
+                            '<p>Lien de connexion : <a href="' . $this->urlGenerator->generate('app_login', [], UrlGeneratorInterface::ABSOLUTE_URL) . '">Se connecter</a></p>' .
+                            '<p>Cordialement,</p>' .
+                            '<p>L\'équipe RDV Pro</p>'
+                        );
+
+                    $mailer->send($email);
+                    $this->addFlash('success', 'Client créé avec succès et un mot de passe temporaire a été envoyé par email.');
+                } else {
+                    $this->addFlash('warning', 'Client créé, mais impossible d\'envoyer l\'email de confirmation au client (email manquant).');
+                }
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Client créé, mais une erreur est survenue lors de l\'envoi de l\'email : ' . $e->getMessage());
+            }
             // --- End Send email ---
-
-            $this->addFlash('success', 'Client créé avec succès et un mot de passe temporaire a été envoyé par email.');
 
             // Check if we need to return to the appointment creation page
             if ($request->query->get('returnToAppointment')) {
