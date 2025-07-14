@@ -22,7 +22,7 @@ class ProfessionalPublicController extends AbstractController
         $this->security = $security;
     }
 
-    #[Route('/', name: 'show', methods: ['GET'], requirements: ['bookingLink' => '^(?!profile|admin|appointment|register|login|logout|verify|reset-password|service|client|business-hours|unavailability).*'])]
+    #[Route('/', name: 'show', methods: ['GET'], requirements: ['bookingLink' => '^(?!profile|admin|cgu-pro|appointment|register|login|logout|verify|reset-password|service|client|business-hours|unavailability).*'])]
     public function show(
         string $bookingLink,
         UserRepository $userRepository,
@@ -31,7 +31,7 @@ class ProfessionalPublicController extends AbstractController
     ): Response {
         /** @var User|null $professional */
         $professional = $userRepository->findOneByBookingLink($bookingLink);
-
+        //$professional = $userRepository->findOneBy(['bookingLink' => $bookingLink]);
         if (!$professional) {
             throw new NotFoundHttpException('Ce lien de réservation n\'existe pas.');
         }

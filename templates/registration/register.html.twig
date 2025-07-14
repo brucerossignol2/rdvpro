@@ -61,14 +61,24 @@
                     </div>
                 </div>
 
+                {# Affichage personnalisé de la checkbox "J'accepte les conditions" #}
                 <div class="mb-3 form-check">
-                    {{ form_row(registrationForm.agreeTerms) }}
+                    {{ form_widget(registrationForm.agreeTerms, {
+                        'attr': {'class': 'form-check-input'}
+                    }) }}
+                    <label class="form-check-label" for="{{ registrationForm.agreeTerms.vars.id }}">
+                        J’accepte les <a href="{{ path('app_cgu_pro') }}" target="_blank">Conditions Générales d’Utilisation professionnelles</a>
+                    </label>
+                    {{ form_errors(registrationForm.agreeTerms) }}
                 </div>
 
                 <button type="submit" class="w-100 btn btn-lg btn-primary">
                     <i class="fas fa-user-plus me-2"></i> S'inscrire
                 </button>
-            {{ form_end(registrationForm) }}
+
+                {# Rendu manuel des autres champs cachés (ex: _token) sans dupliquer agreeTerms #}
+                {{ form_rest(registrationForm, {'exclude': ['agreeTerms']}) }}
+            </form>
 
             <p class="mt-3 mb-0 text-muted text-center">
                 Déjà un compte ? <a href="{{ path('app_login') }}">Connectez-vous ici</a>

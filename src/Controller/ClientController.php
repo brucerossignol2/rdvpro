@@ -105,9 +105,6 @@ class ClientController extends AbstractController
                 if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
                     // Load .env file
                     $dotenv = new Dotenv();
-                    // Adjust path as needed for your project structure.
-                    // dirname(__DIR__, 2) goes up two directories from the current file (src/Controller)
-                    // to the project root where .env is usually located.
                     $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
                     $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
@@ -121,15 +118,15 @@ class ClientController extends AbstractController
 
                     $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
                     $email = (new Email())
-                        ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'info@br-net.fr') // Use professional's email as sender, or from .env
+                        ->from('rdvpro@brelect.fr', 'NO REPLY')
                         ->to($client->getEmail())
-                        ->subject('Votre compte RDV Pro a été créé !')
+                        ->subject('Votre compte sur RDV Pro a été créé !')
                         ->html(
                             '<p>Bonjour ' . $client->getFirstName() . ',</p>' .
                             '<p>Votre compte sur RDV Pro a été créé par ' . $professionalNameForEmail . '.</p>' .
                             '<p>Votre mot de passe temporaire est : <strong>' . $randomPassword . '</strong></p>' .
                             '<p>Veuillez vous connecter et changer votre mot de passe dès que possible.</p>' .
-                            '<p>Lien de connexion : <a href="' . $this->urlGenerator->generate('app_login', [], UrlGeneratorInterface::ABSOLUTE_URL) . '">Se connecter</a></p>' .
+                            '<p>Lien de connexion : <a href="https://rdvpro.brelect.fr/login">Se connecter</a></p>' .
                             '<p>Cordialement,</p>' .
                             '<p>L\'équipe RDV Pro</p>'
                         );

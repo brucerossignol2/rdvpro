@@ -131,4 +131,10 @@ class RegistrationController extends AbstractController
 
         return $this->redirectToRoute('app_login'); // Redirect to login page after successful verification
     }
+    #[Route('/cgu-pro', name: 'app_cgu_pro')]
+    public function cguPro(): Response
+    {
+        return $this->render('legal/terms_pro.html.twig');
+    }
+
 }
