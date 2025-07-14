@@ -1,5 +1,5 @@
 <?php
-// src/Form/ClientTypeForm.php
+// src/Form/ClientType.php
 namespace App\Form;
 
 use App\Entity\Client;
@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Regex;
 
-class ClientTypeForm extends AbstractType
+class ClientType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {

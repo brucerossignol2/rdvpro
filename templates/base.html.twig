@@ -1,3 +1,4 @@
+{# templates/base.html.twig #}
 <!DOCTYPE html>
 <html lang="fr">
     <head>
@@ -252,7 +253,6 @@
                                         <li><a class="dropdown-item" href="{{ path('app_client_profile_show') }}"><i class="fas fa-user-cog"></i> Mon Profil Client</a></li> {# Updated link to client profile #}
                                         <li><a class="dropdown-item" href="{{ path('app_client_appointments_index') }}"><i class="fas fa-calendar-check"></i> Mes Rendez-vous</a></li> {# Added "Mes Rendez-vous" to dropdown #}
                                     {% endif %}
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Paramètres</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
                                 </ul>

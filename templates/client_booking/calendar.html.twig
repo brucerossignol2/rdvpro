@@ -71,7 +71,19 @@
         }
         /* Optional: If you want to change the border/background of the header row itself */
         .fc-theme-standard th {
-             border-color: #3F8574; /* Change border color of header cells */
+            border-color: #3F8574; /* Change border color of header cells */
+        }
+
+        /* Styles pour la Responsivité */
+        /* Masque les boutons de vue (mois, semaine, jour) sur les petits écrans */
+        @media (max-width: 690px) {
+            .fc-toolbar-chunk:last-child {
+                display: none;
+            }
+            /* Vous pouvez ajuster la taille du titre si nécessaire pour les petits écrans */
+            .fc-toolbar-title {
+                font-size: 1.2rem;
+            }
         }
     </style>
 {% endblock %}
@@ -80,7 +92,7 @@
 <div class="container my-5">
     <div class="card shadow-lg p-4">
         <div class="card-body">
-            <h1 class="h3 mb-4 fw-normal text-center text-booking-primary"> {# Applied custom class here #}
+            <h1 class="h3 mb-4 fw-normal text-center text-booking-primary">
                 <i class="fas fa-calendar-check me-2"></i> Réserver avec {{ professional.businessName }}
             </h1>
             <h2 class="h5 mb-4 text-center text-secondary">
@@ -131,16 +143,39 @@
             var initialDate = "{{ initialDate }}"; // Get the initial date from the controller
             var currentClientUserId = {{ app.user and app.user.id ? app.user.id : 'null' }}; // Get the ID of the logged-in client
 
+            // Logique pour la vue responsive du calendrier
+            // Fonction pour déterminer la vue initiale et la configuration de la barre d'outils
+            function getCalendarConfig() {
+                if (window.innerWidth < 690) {
+                    return {
+                        initialView: 'timeGridDay', // Passe en vue journalière
+                        headerToolbar: {
+                            left: 'prev,next', // Conserve seulement les flèches de navigation
+                            center: 'title',
+                            right: '' // Supprime les boutons de vue (géré aussi via CSS pour plus de robustesse)
+                        }
+                    };
+                } else {
+                    return {
+                        initialView: 'timeGridWeek', // Vue par défaut pour les grands écrans
+                        headerToolbar: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        }
+                    };
+                }
+            }
+
+            // Obtenez la configuration initiale en fonction de la taille de l'écran
+            const calendarConfig = getCalendarConfig();
+
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek', // Default view
+                initialView: calendarConfig.initialView, // Utilise la vue déterminée
                 initialDate: initialDate, // Set the initial date dynamically
                 locale: 'fr', // French locale
                 firstDay: 1, // Set Monday as the first day of the week (1 for Monday, 0 for Sunday)
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
+                headerToolbar: calendarConfig.headerToolbar, // Utilise la barre d'outils déterminée
                 buttonText: {
                     today: 'Aujourd\'hui',
                     month: 'Mois',
@@ -271,6 +306,7 @@
                     }
 
                     // Confirmation dialog
+                    // ATTENTION: La chaîne 'Coiffure homme' est ici en dur. Utilisez selectedService.name comme dans le H2.
                     if (confirm("Voulez-vous réserver le service '{{ selectedService.name }}' pour le " + displayDate + " de " + displayStartTime + " à " + displayEndTime + " ?")) {
                         // Redirect to the confirmation page, passing UTC ISO strings
                         window.location.href = '{{ path('app_client_booking_confirm', {
@@ -287,6 +323,44 @@
             });
 
             calendar.render();
+
+            // Gestion du redimensionnement de la fenêtre pour la vue responsive
+            // Écoute l'événement de redimensionnement de la fenêtre
+            window.addEventListener('resize', () => {
+                const newConfig = getCalendarConfig(); // Récupère la nouvelle configuration basée sur la taille
+                // Change la vue du calendrier si elle ne correspond pas à la configuration souhaitée
+                if (calendar.view.type !== newConfig.initialView) {
+                    calendar.changeView(newConfig.initialView);
+                }
+                // Les boutons de l'en-tête sont gérés par le CSS (@media query)
+                // Il n'est pas nécessaire de manipuler headerToolbar ici via JS.
+            });
+        });
+    </script>
+    {# Les scripts JS de bootstrap et vos scripts custom devraient être dans un bloc javascripts distinct, ou juste avant la fermeture de </body> #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+                        
+        // Form validation enhancement
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(event) {
+                const invalidInputs = form.querySelectorAll(':invalid');
+                if (invalidInputs.length > 0) {
+                    event.preventDefault();
+                    invalidInputs[0].focus();
+                }
+            });
         });
     </script>
 {% endblock %}

@@ -9,6 +9,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -29,15 +30,17 @@ class ServiceType extends AbstractType
                 'required' => false,
                 'attr' => ['rows' => 3, 'placeholder' => 'Décrivez votre service...'],
             ])
-            ->add('price', MoneyType::class, [
-                'label' => 'Prix',
-                'currency' => 'EUR',
-                'html5' => true,
-                'attr' => ['placeholder' => 'Ex: 50.00'],
+
+
+            ->add('price', NumberType::class, [ 
+            'label' => 'Prix',
+            'scale' => 2, 
+            'attr' => ['placeholder' => 'Ex: 50.00'],
             ])
+
             ->add('duration', IntegerType::class, [
                 'label' => 'Durée (en minutes)',
-                'attr' => ['placeholder' => 'Ex: 60'],
+                'attr' => ['placeholder' => 'Ex: 45'],
             ])
             ->add('active', CheckboxType::class, [
                 'label' => 'Service actif (visible pour la réservation)',

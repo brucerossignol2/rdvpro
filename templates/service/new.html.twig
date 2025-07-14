@@ -6,7 +6,6 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
@@ -27,7 +26,6 @@
             </div>
         </nav>
 
-        <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
@@ -41,7 +39,6 @@
                 </div>
             </div>
 
-            <!-- Messages flash -->
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
@@ -52,7 +49,6 @@
                 {% endfor %}
             {% endfor %}
 
-            <!-- Formulaire -->
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card shadow-sm">
@@ -76,20 +72,32 @@
                                             {{ form_widget(form.name, {'attr': {'class': 'form-control w-100'}}) }}
                                             {{ form_errors(form.name) }}
                                         </div>
-                                        <div class="row"> {# Prix et Durée côte à côte #}
-                                            <div class="col-md-6 mb-3">
-                                                {{ form_label(form.price, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
-                                                {{ form_widget(form.price) }}
-                                                {{ form_errors(form.price) }}
+                                        {# Prix et Durée l'un en dessous de l'autre, avec taille réduite #}
+                                        <div class="mb-3">
+                                            {{ form_label(form.price, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                            <div class="col-md-6"> {# Utiliser une colonne ici pour réduire la largeur #}
+                                                <div class="input-group">
+                                                    {{ form_widget(form.price, {'attr': {'class': 'form-control text-end'}}) }}
+                                                    <span class="input-group-text">€</span>
+                                                </div>
                                             </div>
-                                            <div class="col-md-6 mb-3">
-                                                {{ form_label(form.duration, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
-                                                {{ form_widget(form.duration) }}
-                                                {{ form_errors(form.duration) }}
+                                            {{ form_errors(form.price) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(form.duration, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                            <div class="col-md-6"> 
+                                                <div class="input-group"> 
+                                                    {{ form_widget(form.duration, {'attr': {'class': 'form-control text-end'}}) }}
+                                                    <span class="input-group-text">min</span> 
+                                                </div>
                                             </div>
+                                            {{ form_errors(form.duration) }}
                                         </div>
                                         <div class="mb-3 form-check">
-                                            {{ form_row(form.active, { 'label_attr': {'class': 'form-check-label'} }) }}
+                                           {{ form_widget(form.active, {'attr': {'class': 'form-check-input'}}) }}
+                                           {{ form_label(form.active, 'Service actif', {'label_attr': {'class': 'form-check-label'}}) }}
+                                            <small class="d-block text-muted ms-4">(visible pour la réservation)</small>
+                                            {{ form_errors(form.active) }}
                                         </div>
                                     </div>
 
@@ -127,7 +135,7 @@
                                         <div class="col-md-6">
                                             <div class="form-check">
                                                 {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
-                                                {{ form_label(child, null, {'label_attr': {'class': 'form-check-label ms-2'}}) }} {# Ajout de ms-2 pour l'espace #}
+                                                {{ form_label(child, null, {'label_attr': {'class': 'form-check-label ms-2'}}) }}
                                             </div>
                                         </div>
                                     {% endfor %}

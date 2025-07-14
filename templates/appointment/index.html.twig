@@ -4,9 +4,14 @@
 {% block title %}Mon Calendrier - RDV Pro{% endblock %}
 
 {% block stylesheets %}
+    {{ parent() }} {# Important to keep parent stylesheets if any #}
     {# FullCalendar CSS #}
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
     <style>
+        /* Basic FullCalendar styles */
+        #calendar {
+            min-height: 500px; /* Ensure the calendar container has a minimum height */
+        }
         .fc-event {
             cursor: pointer;
         }
@@ -38,61 +43,40 @@
             background-color: #d0d0d0 !important; /* Couleur de fond grisée plus foncée - FORCÉE */
             opacity: 0.7 !important; /* Légèrement transparent - FORCÉ */
         }
+
+        /* NEW: Style for calendar column headers (days of the week) */
+        .fc-col-header-cell-cushion { /* This class targets the text inside the header cells */
+            color: #3F8574 !important; /* Apply the desired color, adjust as needed */
+            font-weight: bold; /* Make them bold for better visibility if desired */
+        }
+        /* Optional: If you want to change the border/background of the header row itself */
+        .fc-theme-standard th {
+            border-color: #3F8574; /* Change border color of header cells */
+        }
+
+        /* Styles pour la Responsivité */
+        @media (max-width: 690px) {
+            /* Masque les boutons de vue (mois, semaine, jour) sur les petits écrans */
+            .fc-toolbar-chunk:last-child {
+                display: none;
+            }
+            /* Ajuste la taille du titre si nécessaire pour les petits écrans */
+            .fc-toolbar-title {
+                font-size: 1.2rem;
+            }
+            /* Cache la colonne horaire sur timeGridDay si nécessaire pour gagner de l'espace */
+            /* .fc-timegrid-axis-frame { display: none; } */
+        }
     </style>
 {% endblock %}
 
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>MON COMPTE</span>
-                </h6>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
-                            <i class="fas fa-user-cog"></i> Mes Informations
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
-                            <i class="fas fa-clock"></i> Mes Horaires
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
-                            <i class="fas fa-briefcase"></i> Mes Services
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
-                            <i class="fas fa-key"></i> Mot de passe
-                        </a>
-                    </li>
-                </ul>
-                
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>ACCÈS RAPIDE</span>
-                </h6>
-                <ul class="nav flex-column mb-2">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_index') }}">
-                            <i class="fas fa-users"></i> Liste des clients
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_new') }}">
-                            <i class="fas fa-user-plus"></i> Nouveau client
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        {# La colonne latérale (sidebar) a été supprimée #}
 
-        <!-- Main content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        {# La classe col-md-9 ms-sm-auto col-lg-10 px-md-4 est remplacée par col-12 pour prendre toute la largeur #}
+        <main class="col-12 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
                     <i class="fas fa-calendar-alt text-primary"></i>
@@ -105,7 +89,6 @@
                 </div>
             </div>
 
-            <!-- Messages flash -->
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
@@ -125,7 +108,6 @@
     </div>
 </div>
 
-<!-- Modal pour les détails du rendez-vous / indisponibilité -->
 <div class="modal fade" id="appointmentDetailModal" tabindex="-1" aria-labelledby="appointmentDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -178,17 +160,39 @@
             console.log('businessHours from controller:', businessHours);
             console.log('initialDate from controller:', initialDate);
 
+            // --- Logique pour la vue responsive du calendrier ---
+            // Fonction pour déterminer la vue initiale et la configuration de la barre d'outils
+            function getCalendarConfig() {
+                if (window.innerWidth < 690) {
+                    return {
+                        initialView: 'timeGridDay', // Passe en vue journalière
+                        headerToolbar: {
+                            left: 'prev,next', // Conserve seulement les flèches de navigation
+                            center: 'title',
+                            right: '' // Supprime les boutons de vue
+                        }
+                    };
+                } else {
+                    return {
+                        initialView: 'timeGridWeek', // Vue par défaut pour les grands écrans
+                        headerToolbar: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        }
+                    };
+                }
+            }
+
+            // Obtenez la configuration initiale en fonction de la taille de l'écran
+            const calendarConfig = getCalendarConfig();
 
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek', // Default view
+                initialView: calendarConfig.initialView, // Utilise la vue déterminée
                 initialDate: initialDate, // Set the initial date dynamically
                 locale: 'fr', // French locale
                 firstDay: 1, // Set Monday as the first day of the week (1 for Monday, 0 for Sunday)
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
+                headerToolbar: calendarConfig.headerToolbar, // Utilise la barre d'outils déterminée
                 buttonText: {
                     today: 'Aujourd\'hui',
                     month: 'Mois',
@@ -253,7 +257,6 @@
                     document.getElementById('deleteAppointmentForm').action = '{{ path('app_appointment_delete', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
                     document.getElementById('deleteAppointmentToken').value = extendedProps.deleteToken; // Use the pre-generated token
 
-
                     // Show the modal
                     var appointmentDetailModal = new bootstrap.Modal(document.getElementById('appointmentDetailModal'));
                     appointmentDetailModal.show();
@@ -279,6 +282,18 @@
             });
 
             calendar.render();
+
+            // --- Gestion du redimensionnement de la fenêtre pour la vue responsive ---
+            // Écoute l'événement de redimensionnement de la fenêtre
+            window.addEventListener('resize', () => {
+                const newConfig = getCalendarConfig(); // Récupère la nouvelle configuration basée sur la taille
+                // Change la vue du calendrier si elle ne correspond pas à la configuration souhaitée
+                if (calendar.view.type !== newConfig.initialView) {
+                    calendar.changeView(newConfig.initialView);
+                }
+                // Les boutons de l'en-tête sont gérés par le CSS (@media query)
+                // Il n'est pas nécessaire de manipuler headerToolbar ici via JS.
+            });
 
             // Function to send updated appointment times to the server
             function updateAppointmentTimes(id, newStart, newEnd, info) { // Added info parameter

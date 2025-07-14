@@ -145,9 +145,14 @@
                                 <a href="{{ path('app_client_index') }}" class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Annuler
                                 </a>
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-save"></i> Enregistrer les modifications
-                                </button>
+                                {# Le bouton submit généré par le formulaire #}
+                                {{ form_row(form.submit, {
+                                    'label': '<i class="fas fa-save"></i> Enregistrer les modifications',
+                                    'label_html': true,
+                                    'attr': {
+                                        'class': 'btn btn-primary btn-lg'
+                                    }
+                                }) }}
                             </div>
 
                             {{ form_end(form) }}
