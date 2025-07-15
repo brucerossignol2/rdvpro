@@ -23,14 +23,22 @@ use DateTime; // Import DateTime class
 use DateTimeZone; // Import DateTimeZone class
 use DateInterval; // Import DateInterval for time calculations
 
+// IMPORTS POUR L'EMAIL
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
+use Symfony\Component\Mailer\Transport; // Import Transport
+
 #[Route('/book')]
 class ClientBookingController extends AbstractController
 {
     private Security $security;
+    private MailerInterface $mailer; // Déclarez le type
 
-    public function __construct(Security $security)
+    public function __construct(Security $security, MailerInterface $mailer)
     {
         $this->security = $security;
+        $this->mailer = $mailer;
     }
 
     /**
@@ -324,7 +332,68 @@ class ClientBookingController extends AbstractController
                 $entityManager->persist($appointment);
                 $entityManager->flush();
 
-                $this->addFlash('success', 'Votre rendez-vous a été réservé avec succès !');
+                // Load .env only once if Dotenv is not already handled by Symfony Flex or similar
+                $dotenv = new Dotenv();
+                $dotenv->loadEnv(dirname(__DIR__).'/../.env');
+
+                // ENVOI DE L'EMAIL AU CLIENT
+                $emailToClient = (new Email())
+                    ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                    ->to($client->getEmail())
+                    ->subject(
+                        'Confirmation de votre rendez-vous avec ' .
+                        ($professional->getBusinessName() ?? ($professional->getFirstName() . ' ' . $professional->getLastName()))
+                    )
+                    ->html($this->renderView(
+                        'emails/client_appointment_confirmation.html.twig',
+                        [
+                            'appointment' => $appointment,
+                            'professional' => $professional,
+                            'client' => $client,
+                            'service' => $selectedService,
+                            'startTime' => $startTime,
+                            'endTime' => $endTime,
+                        ]
+                    ));
+
+                if ($professional->getBusinessEmail()) {
+                    $emailToClient->replyTo($professional->getBusinessEmail());
+                }
+
+                $this->mailer->send($emailToClient);
+                $this->addFlash('success', 'Votre rendez-vous a été réservé avec succès et un e-mail de confirmation vous a été envoyé !');
+
+                // ENVOI DE L'EMAIL AU PROFESSIONNEL
+                if ($professional->getBusinessEmail()) {
+                    $emailToProfessional = (new Email())
+                        ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                        ->to($professional->getBusinessEmail())
+                        ->subject(
+                            'Nouveau rendez-vous: ' . $client->getFirstName() . ' ' . $client->getLastName() .
+                            ' pour ' . $selectedService->getName() .
+                            ' le ' . $startTime->format('d/m/Y à H:i')
+                        )
+                        ->html($this->renderView(
+                            'emails/professional_appointment_notification.html.twig',
+                            [
+                                'appointment' => $appointment,
+                                'professional' => $professional,
+                                'client' => $client,
+                                'service' => $selectedService,
+                                'startTime' => $startTime,
+                                'endTime' => $endTime,
+                            ]
+                        ));
+
+                    // définir l'email du client comme reply-to pour que le pro puisse répondre directement
+                    if ($client->getEmail()) {
+                        $emailToProfessional->replyTo($client->getEmail());
+                    }
+
+                    $this->mailer->send($emailToProfessional);
+                    // Pas de addFlash pour le pro ici, car le client ne devrait pas voir cette info
+                }
+
                 return $this->redirectToRoute('app_client_appointments_index'); // Redirect to client's appointments list
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Une erreur est survenue lors de la réservation : ' . $e->getMessage());

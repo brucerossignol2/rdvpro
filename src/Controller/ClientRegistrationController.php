@@ -119,18 +119,20 @@ class ClientRegistrationController extends AbstractController
                 $emailMessage = (new Email())
                     ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr') // Replace with your sender email, or from .env
                     ->to($client->getEmail())
-                    ->subject('Veuillez confirmer votre adresse e-mail pour RDV Pro')
+                    ->subject('Validation de votre compte sur RDV Pro')
                     ->html($this->renderView('client_registration/confirmation_email.html.twig', [
                         'signedUrl' => $signatureComponents->getSignedUrl(),
                         'client' => $client,
                         'professional' => $professional,
                         'expiresAt' => $signatureExpiresAt, 
                     ]));
-
+                if ($professional->getEmail()) {
+                    $emailMessage->addReplyTo($professional->getEmail());
+                }
                 $customMailer->send($emailMessage); // Send using the custom mailer
-                $this->addFlash('success', 'Votre compte a été créé ! Veuillez vérifier votre email pour le lien de confirmation.');
+                $this->addFlash('success', 'Votre compte a été créé ! Un email de validation vient de vous être envoyé.');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Votre compte a été créé, mais l\'e-mail de confirmation n\'a pas pu être envoyé. Erreur: ' . $e->getMessage());
+                $this->addFlash('error', 'Votre compte a été créé, mais l\'e-mail de validation n\'a pas pu être envoyé. Erreur: ' . $e->getMessage());
             }
 
             // MODIFICATION: Rediriger vers la page de connexion avec le paramètre bookingLink

@@ -219,8 +219,8 @@ class AppointmentController extends AbstractController
         $appointment = new Appointment();
 
         // Set default title based on professional's business name or full name
-        $professionalName = $professional->getBusinessName() ?: ($professional->getFirstName() . ' ' . $professional->getLastName());
-        $appointment->setTitle('RDV posé par ' . $professionalName);
+        //$professionalName = $professional->getBusinessName() ?: ($professional->getFirstName() . ' ' . $professional->getLastName());
+        //$appointment->setTitle('RDV posé par ' . $professionalName);
 
         $appointment->setProfessional($professional);
 
@@ -290,51 +290,58 @@ class AppointmentController extends AbstractController
             $entityManager->flush();
 
             // === DÉBUT DU CODE POUR L'ENVOI D'EMAIL ===
-            try {
-                /** @var \App\Entity\Client|null $client */
-                $client = $appointment->getClient();
+            // AJOUT DE LA CONDITION : Ne tente l'envoi d'email que si ce n'est PAS une indisponibilité personnelle
+            if (!$appointment->isIsPersonalUnavailability()) {
+                try {
+                    /** @var \App\Entity\Client|null $client */
+                    $client = $appointment->getClient();
 
-                /** @var \App\Entity\User|null $professional */
-                $professional = $this->getUser();
+                    /** @var \App\Entity\User|null $professional */
+                    $professional = $this->getUser();
 
-                if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
-                    // Load .env file
-                    $dotenv = new Dotenv();
-                    $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env'); // Adjust path as needed for your project structure
+                    if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
+                        // Load .env file
+                        $dotenv = new Dotenv();
+                        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env'); // Adjust path as needed for your project structure
 
-                    $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+                        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
 
-                    if (!$mailerDsn) {
-                        throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                        if (!$mailerDsn) {
+                            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                        }
+
+                        $transport = Transport::fromDsn($mailerDsn);
+                        $mailer = new Mailer($transport);
+
+                        $email = (new Email())
+                            ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr') // You can also get this from .env if needed
+                            ->to($client->getEmail())
+                            ->subject('Confirmation de votre rendez-vous avec ' . $professional->getFirstName() . ' ' . $professional->getLastName())
+                            ->html($this->renderView(
+                                'emails/appointment_confirmation.html.twig',
+                                [
+                                    'appointment' => $appointment,
+                                    'professional' => $professional,
+                                    'client' => $client,
+                                ]
+                            ));
+                       if ($professional->getEmail()) {
+                            $emailMessage->addReplyTo($professional->getEmail());
+                        }
+
+                        $mailer->send($email);
+                        $this->addFlash('success', 'Rendez-vous créé avec succès et un email de confirmation a été envoyé au client.');
+                    } else {
+                        $this->addFlash('warning', 'Rendez-vous créé, mais impossible d\'envoyer l\'email de confirmation au client (email manquant).');
                     }
-
-                    $transport = Transport::fromDsn($mailerDsn);
-                    $mailer = new Mailer($transport);
-
-                    $email = (new Email())
-                        ->from('rdvpro@brelect.fr') // You can also get this from .env if needed
-                        ->to($client->getEmail())
-                        ->subject('Confirmation de votre rendez-vous avec ' . $professional->getFirstName() . ' ' . $professional->getLastName())
-                        ->html($this->renderView(
-                            'emails/appointment_confirmation.html.twig',
-                            [
-                                'appointment' => $appointment,
-                                'professional' => $professional,
-                                'client' => $client,
-                            ]
-                        ));
-
-                    $mailer->send($email);
-                    $this->addFlash('success', 'Rendez-vous créé avec succès et email de confirmation envoyé au client.');
-                } else {
-                    $this->addFlash('warning', 'Rendez-vous créé, mais impossible d\'envoyer l\'email de confirmation au client (email manquant).');
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Rendez-vous créé, mais une erreur est survenue lors de l\'envoi de l\'email : ' . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                $this->addFlash('error', 'Rendez-vous créé, mais une erreur est survenue lors de l\'envoi de l\'email : ' . $e->getMessage());
+            } else {
+                // Message de succès spécifique pour une indisponibilité personnelle
+                $this->addFlash('success', 'Indisponibilité personnelle créée avec succès.');
             }
             // === FIN DU CODE POUR L'ENVOI D'EMAIL ===
-
-           // $this->addFlash('success', 'Le rendez-vous a été créé avec succès !');
 
             return $this->redirectToRoute('app_appointment_index');
         }
@@ -402,7 +409,13 @@ class AppointmentController extends AbstractController
 
             $entityManager->flush();
 
-            $this->addFlash('success', 'Le rendez-vous a été mis à jour avec succès !');
+            // AJOUT DE LA CONDITION POUR LE MESSAGE DE SUCCÈS LORS DE L'ÉDITION ÉGALEMENT
+            if (!$appointment->isIsPersonalUnavailability()) {
+                $this->addFlash('success', 'Le rendez-vous a été mis à jour avec succès !');
+            } else {
+                $this->addFlash('success', 'L\'indisponibilité personnelle a été mise à jour avec succès !');
+            }
+            
 
             return $this->redirectToRoute('app_appointment_index');
         }

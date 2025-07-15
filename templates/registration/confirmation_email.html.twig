@@ -1,19 +1,12 @@
 {# templates/registration/confirmation_email.html.twig #}
 <h1>Bonjour {{ user.firstName }} {{ user.lastName }} !</h1>
-
+<h2>Votre adresse e-mail est confirmée</h2>
 <p>
-    Merci de vous être inscrit sur RDV Pro. Pour finaliser la création de votre compte,
-    veuillez confirmer votre adresse e-mail en cliquant sur le lien ci-dessous :
+    Pour consulter et posez des rendez-vous pour vos clients, cliquez sur le lien suivant : <br><br>
+    <a href="https://rdvpro.brelect.fr/login">Connection à mon compte RDV Pro</a>.
 </p>
 
 <p>
-    <a href="{{ signedUrl|raw }}">Confirmer mon adresse e-mail</a>
-</p>
-
-<p>
-    Ce lien expirera dans 24 heures. {# Corrected: Replaced unknown filter with direct text #}
-</p>
-
-<p>
-    À bientôt sur RDV Pro !
+    Cordialement,<br>
+    L'équipe RDV Pro
 </p>

@@ -79,17 +79,19 @@ class RegistrationController extends AbstractController
 
             // Send email
             $email = (new Email())
-                ->from('no-reply@rdvpro.com') // Replace with your sender email
+                ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr') // Replace with your sender email
                 ->to($user->getEmail())
-                ->subject('Veuillez confirmer votre adresse e-mail')
+                ->subject('Confirmation de votre adresse e-mail')
                 ->html($this->renderView('registration/confirmation_email.html.twig', [
                     'signedUrl' => $signatureComponents->getSignedUrl(),
                     'user' => $user
                 ]));
-
+                if ($professional->getEmail()) {
+                    $emailMessage->addReplyTo($professional->getEmail());
+                }
             try {
                 $mailer->send($email);
-                $this->addFlash('success', 'Votre compte a été créé ! Veuillez vérifier votre email pour le lien de confirmation.');
+                $this->addFlash('success', 'Votre compte a été créé ! Un email de confirmation vient de vous être envoyé.');
             } catch (\Exception $e) {
                 // Log the error for debugging, but don't prevent user creation
                 $this->addFlash('error', 'Votre compte a été créé, mais l\'e-mail de confirmation n\'a pas pu être envoyé. Veuillez vérifier votre configuration de messagerie. Erreur: ' . $e->getMessage());

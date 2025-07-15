@@ -118,7 +118,7 @@ class ClientController extends AbstractController
 
                     $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
                     $email = (new Email())
-                        ->from('rdvpro@brelect.fr')
+                        ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
                         ->to($client->getEmail())
                         ->subject('Votre compte sur RDV Pro a été créé !')
                         ->html(
@@ -130,6 +130,9 @@ class ClientController extends AbstractController
                             '<p>Cordialement,</p>' .
                             '<p>L\'équipe RDV Pro</p>'
                         );
+                    if ($professional->getEmail()) {
+                        $emailMessage->addReplyTo($professional->getEmail());
+                    }
 
                     $mailer->send($email);
                     $this->addFlash('success', 'Client créé avec succès et un mot de passe temporaire a été envoyé par email.');

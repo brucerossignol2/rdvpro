@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Entity\Client; // Import Client entity
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use DateTimeImmutable; // Import DateTimeImmutable
 
 /**
  * @extends ServiceEntityRepository<Appointment>
@@ -93,4 +94,27 @@ class AppointmentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Finds appointments that are scheduled to start within a specific time window
+     * (e.g., exactly 24 hours from now) for sending reminders.
+     *
+     * @param DateTimeImmutable $startWindow The start of the time window (e.g., now + 23 hours).
+     * @param DateTimeImmutable $endWindow The end of the time window (e.g., now + 25 hours).
+     * @return Appointment[] Returns an array of Appointment objects due for a reminder.
+     */
+    public function findAppointmentsDueForReminder(DateTimeImmutable $startWindow, DateTimeImmutable $endWindow): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.isPersonalUnavailability = :isPersonal') // Only consider client appointments
+            ->andWhere('a.startTime >= :startWindow')
+            ->andWhere('a.startTime < :endWindow') // Use < to ensure it's within the next 24 hours (exclusive of endWindow)
+            ->andWhere('a.client IS NOT NULL') // Ensure a client is associated
+            ->setParameter('isPersonal', false)
+            ->setParameter('startWindow', $startWindow)
+            ->setParameter('endWindow', $endWindow)
+            ->getQuery()
+            ->getResult();
+    }
 }
+

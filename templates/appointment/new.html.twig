@@ -1,4 +1,5 @@
 {# templates/appointment/new.html.twig #}
+
 {% extends 'base.html.twig' %}
 
 {% block title %}Nouveau Rendez-vous - RDV Pro{% endblock %}
@@ -6,7 +7,6 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
@@ -53,7 +53,6 @@
             </div>
         </nav>
 
-        <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
@@ -67,7 +66,6 @@
                 </div>
             </div>
 
-            <!-- Messages flash -->
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
@@ -78,7 +76,6 @@
                 {% endfor %}
             {% endfor %}
 
-            <!-- Formulaire -->
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card shadow-sm">
@@ -109,9 +106,18 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-3 form-check">
-                                    {{ form_row(form.isPersonalUnavailability, { 'label_attr': {'class': 'form-check-label'} }) }}
+                                {# Section modifiée pour isPersonalUnavailability #}
+                                <div class="mb-3 form-check form-check-inline">
+                                    {{ form_widget(form.isPersonalUnavailability, {'attr': {'class': 'form-check-input me-2'}}) }}
+                                    <label class="form-check-label" for="appointment_isPersonalUnavailability">
+                                        {{ form.isPersonalUnavailability.vars.label }}
+                                    </label>
+                                    <small class="form-text text-muted d-block ms-4">
+                                        {{ form.isPersonalUnavailability.vars.help }}
+                                    </small>
+                                    {{ form_errors(form.isPersonalUnavailability) }}
                                 </div>
+
 
                                 <div id="clientAndServicesFields">
                                     <div class="mb-3">
@@ -185,8 +191,6 @@
     </div>
 </div>
 
-{# Removed the New Client Modal HTML #}
-
 {% endblock %}
 
 {% block javascripts %}
@@ -198,6 +202,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const servicesSelect = document.getElementById('appointment_services');
     const startTimeInput = document.getElementById('appointment_startTime');
     const endTimeInput = document.getElementById('appointment_endTime');
+    const titleInput = document.getElementById('appointment_title'); // Get title input
+
+    // Pass professional's first name and business name from Twig to JavaScript
+    const professionalFirstName = "{{ app.user.firstName | e('js') }}";
+    const professionalBusinessName = "{{ app.user.businessName | e('js') }}";
+
+    // Define texts to be used as actual values and placeholders
+    const defaultTitleText = `RDV posé par '${professionalBusinessName}'`;
+    const unavailabilityTitleText = `Indisponibilité posée par '${professionalFirstName}'`;
 
     // Parse services data passed from the controller
     const servicesData = {{ servicesData|raw }};
@@ -206,40 +219,64 @@ document.addEventListener('DOMContentLoaded', function() {
         serviceDurations[service.id] = service.duration;
     });
 
+    // MODIFICATION ICI : Mettez à jour la fonction updateTitlePlaceholder
+    function updateTitlePlaceholder() {
+        if (!titleInput) return; // Ensure titleInput exists before manipulating
+
+        const isUnavailability = isPersonalUnavailabilityCheckbox && isPersonalUnavailabilityCheckbox.checked;
+        const targetText = isUnavailability ? unavailabilityTitleText : defaultTitleText;
+
+        // Si le champ est vide, ou s'il contient l'autre texte par défaut
+        // (ce qui signifie que le type a changé et que l'utilisateur n'a pas tapé de texte personnalisé)
+        if (titleInput.value === '' || 
+            (isUnavailability && titleInput.value === defaultTitleText) ||
+            (!isUnavailability && titleInput.value === unavailabilityTitleText)) 
+        {
+            titleInput.value = targetText; // Définit la VRAIE valeur du champ
+        }
+        
+        // Mettre à jour le placeholder pour toujours refléter l'état actuel (même si la valeur est déjà présente)
+        titleInput.placeholder = targetText; 
+        
+    }
+
     function toggleClientAndServicesFields() {
-        if (isPersonalUnavailabilityCheckbox.checked) {
-            clientAndServicesFields.style.display = 'none';
-            clientInput.removeAttribute('required');
-            servicesSelect.removeAttribute('required');
+        if (isPersonalUnavailabilityCheckbox && isPersonalUnavailabilityCheckbox.checked) {
+            if (clientAndServicesFields) clientAndServicesFields.style.display = 'none';
+            if (clientInput) clientInput.removeAttribute('required');
+            if (servicesSelect) servicesSelect.removeAttribute('required');
             // Clear values when hiding
-            clientInput.value = '';
-            Array.from(servicesSelect.options).forEach(option => option.selected = false);
+            if (clientInput) clientInput.value = '';
+            if (servicesSelect) Array.from(servicesSelect.options).forEach(option => option.selected = false);
             updateEndTime(); // Recalculate end time as services are cleared
         } else {
-            clientAndServicesFields.style.display = 'block';
-            clientInput.setAttribute('required', 'required');
-            servicesSelect.setAttribute('required', 'required');
+            if (clientAndServicesFields) clientAndServicesFields.style.display = 'block';
+            if (clientInput) clientInput.setAttribute('required', 'required');
+            if (servicesSelect) servicesSelect.setAttribute('required', 'required');
         }
+        updateTitlePlaceholder(); // Update title value and placeholder based on checkbox state
     }
 
     function updateEndTime() {
-        const startTimeStr = startTimeInput.value;
+        const startTimeStr = startTimeInput ? startTimeInput.value : '';
         if (!startTimeStr) {
-            endTimeInput.value = '';
+            if (endTimeInput) endTimeInput.value = '';
             return;
         }
 
         const startTime = new Date(startTimeStr); // Parse start time
 
         let durationToAdd = 0;
-        if (!isPersonalUnavailabilityCheckbox.checked) {
+        if (isPersonalUnavailabilityCheckbox && !isPersonalUnavailabilityCheckbox.checked) {
             // If it's a client appointment
-            Array.from(servicesSelect.selectedOptions).forEach(option => {
-                const serviceId = option.value;
-                if (serviceDurations[serviceId]) {
-                    durationToAdd += serviceDurations[serviceId];
-                }
-            });
+            if (servicesSelect) {
+                Array.from(servicesSelect.selectedOptions).forEach(option => {
+                    const serviceId = option.value;
+                    if (serviceDurations[serviceId]) {
+                        durationToAdd += serviceDurations[serviceId];
+                    }
+                });
+            }
             // If no services selected, default to 30 minutes for client appointment
             if (durationToAdd === 0) {
                 durationToAdd = 30;
@@ -261,20 +298,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = String(endTime.getMinutes()).padStart(2, '0');
         const formattedEndTime = `${year}-${month}-${day}T${hours}:${minutes}`;
         
-        endTimeInput.value = formattedEndTime;
+        if (endTimeInput) endTimeInput.value = formattedEndTime;
     }
 
     // Initial state on page load
-    toggleClientAndServicesFields();
+    toggleClientAndServicesFields(); // This now calls updateTitlePlaceholder internally
     updateEndTime(); // Set initial end time based on pre-filled values or defaults
 
     // Listen for changes on the checkbox
-    isPersonalUnavailabilityCheckbox.addEventListener('change', toggleClientAndServicesFields);
+    if (isPersonalUnavailabilityCheckbox) {
+        isPersonalUnavailabilityCheckbox.addEventListener('change', toggleClientAndServicesFields);
+    }
     // Listen for changes on start time and services select
-    startTimeInput.addEventListener('change', updateEndTime);
-    servicesSelect.addEventListener('change', updateEndTime);
-
-    {# Removed New Client Modal JavaScript Logic #}
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', updateEndTime);
+    }
+    if (servicesSelect) {
+        servicesSelect.addEventListener('change', updateEndTime);
+    }
 });
 </script>
 {% endblock %}

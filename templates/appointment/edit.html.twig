@@ -6,7 +6,6 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
@@ -39,7 +38,7 @@
                     <span>ACCÈS RAPIDE</span>
                 </h6>
                 <ul class="nav flex-column mb-2">
-                     <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ path('app_client_index') }}">
                             <i class="fas fa-users"></i> Liste des clients
                         </a>
@@ -53,7 +52,6 @@
             </div>
         </nav>
 
-        <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
@@ -67,7 +65,6 @@
                 </div>
             </div>
 
-            <!-- Messages flash -->
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
@@ -78,7 +75,6 @@
                 {% endfor %}
             {% endfor %}
 
-            <!-- Formulaire -->
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card shadow-sm">
@@ -109,9 +105,16 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-3 form-check">
-                                    {{ form_row(form.isPersonalUnavailability, { 'label_attr': {'class': 'form-check-label'} }) }}
-                                    {# Removed: <small class="form-text text-muted">{{ form_help(form.isPersonalUnavailability) }}</small> #}
+                                {# Section modifiée pour isPersonalUnavailability #}
+                                <div class="mb-3 form-check form-check-inline">
+                                    {{ form_widget(form.isPersonalUnavailability, {'attr': {'class': 'form-check-input me-2'}}) }}
+                                    <label class="form-check-label" for="appointment_isPersonalUnavailability">
+                                        {{ form.isPersonalUnavailability.vars.label }}
+                                    </label>
+                                    <small class="form-text text-muted d-block ms-4">
+                                        {{ form.isPersonalUnavailability.vars.help }}
+                                    </small>
+                                    {{ form_errors(form.isPersonalUnavailability) }}
                                 </div>
 
                                 <div id="clientAndServicesFields">
@@ -181,7 +184,6 @@
     </div>
 </div>
 
-<!-- New Client Modal -->
 <div class="modal fade" id="newClientModal" tabindex="-1" aria-labelledby="newClientModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -228,6 +230,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const servicesSelect = document.getElementById('appointment_services'); // Renamed for clarity
     const startTimeInput = document.getElementById('appointment_startTime');
     const endTimeInput = document.getElementById('appointment_endTime');
+    const titleInput = document.getElementById('appointment_title'); // Get title input
+
+    // Pass professional's first name and business name from Twig to JavaScript
+    const professionalFirstName = "{{ app.user.firstName | e('js') }}";
+    const professionalBusinessName = "{{ app.user.businessName | e('js') }}";
+
+    // Define texts to be used as actual values and placeholders
+    const defaultTitleText = `RDV posé par '${professionalBusinessName}'`;
+    const unavailabilityTitleText = `Indisponibilité posée par '${professionalFirstName}'`;
 
     // Parse services data passed from the controller
     const servicesData = {{ servicesData|raw }};
@@ -236,40 +247,64 @@ document.addEventListener('DOMContentLoaded', function() {
         serviceDurations[service.id] = service.duration;
     });
 
+    // MODIFICATION ICI : Mettez à jour la fonction updateTitlePlaceholder
+    function updateTitlePlaceholder() {
+        if (!titleInput) return; // Ensure titleInput exists before manipulating
+
+        const isUnavailability = isPersonalUnavailabilityCheckbox && isPersonalUnavailabilityCheckbox.checked;
+        const targetText = isUnavailability ? unavailabilityTitleText : defaultTitleText;
+
+        // Si le champ est vide, ou s'il contient l'autre texte par défaut
+        // (ce qui signifie que le type a changé et que l'utilisateur n'a pas tapé de texte personnalisé)
+        if (titleInput.value === '' || 
+            (isUnavailability && titleInput.value === defaultTitleText) ||
+            (!isUnavailability && titleInput.value === unavailabilityTitleText)) 
+        {
+            titleInput.value = targetText; // Définit la VRAIE valeur du champ
+        }
+        
+        // Mettre à jour le placeholder pour toujours refléter l'état actuel (même si la valeur est déjà présente)
+        titleInput.placeholder = targetText; 
+        
+    }
+
     function toggleClientAndServicesFields() {
-        if (isPersonalUnavailabilityCheckbox.checked) {
-            clientAndServicesFields.style.display = 'none';
-            clientInput.removeAttribute('required');
-            servicesSelect.removeAttribute('required');
+        if (isPersonalUnavailabilityCheckbox && isPersonalUnavailabilityCheckbox.checked) {
+            if (clientAndServicesFields) clientAndServicesFields.style.display = 'none';
+            if (clientInput) clientInput.removeAttribute('required');
+            if (servicesSelect) servicesSelect.removeAttribute('required');
             // Clear values when hiding
-            clientInput.value = '';
-            Array.from(servicesSelect.options).forEach(option => option.selected = false);
+            if (clientInput) clientInput.value = '';
+            if (servicesSelect) Array.from(servicesSelect.options).forEach(option => option.selected = false);
             updateEndTime(); // Recalculate end time as services are cleared
         } else {
-            clientAndServicesFields.style.display = 'block';
-            clientInput.setAttribute('required', 'required');
-            servicesSelect.setAttribute('required', 'required');
+            if (clientAndServicesFields) clientAndServicesFields.style.display = 'block';
+            if (clientInput) clientInput.setAttribute('required', 'required');
+            if (servicesSelect) servicesSelect.setAttribute('required', 'required');
         }
+        updateTitlePlaceholder(); // Update title value and placeholder based on checkbox state
     }
 
     function updateEndTime() {
-        const startTimeStr = startTimeInput.value;
+        const startTimeStr = startTimeInput ? startTimeInput.value : '';
         if (!startTimeStr) {
-            endTimeInput.value = '';
+            if (endTimeInput) endTimeInput.value = '';
             return;
         }
 
         const startTime = new Date(startTimeStr); // Parse start time
 
         let durationToAdd = 0;
-        if (!isPersonalUnavailabilityCheckbox.checked) {
+        if (isPersonalUnavailabilityCheckbox && !isPersonalUnavailabilityCheckbox.checked) {
             // If it's a client appointment
-            Array.from(servicesSelect.selectedOptions).forEach(option => {
-                const serviceId = option.value;
-                if (serviceDurations[serviceId]) {
-                    durationToAdd += serviceDurations[serviceId];
-                }
-            });
+            if (servicesSelect) {
+                Array.from(servicesSelect.selectedOptions).forEach(option => {
+                    const serviceId = option.value;
+                    if (serviceDurations[serviceId]) {
+                        durationToAdd += serviceDurations[serviceId];
+                    }
+                });
+            }
             // If no services selected, default to 30 minutes for client appointment
             if (durationToAdd === 0) {
                 durationToAdd = 30;
@@ -291,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = String(endTime.getMinutes()).padStart(2, '0');
         const formattedEndTime = `${year}-${month}-${day}T${hours}:${minutes}`;
         
-        endTimeInput.value = formattedEndTime;
+        if (endTimeInput) endTimeInput.value = formattedEndTime;
     }
 
     // Initial state on page load
@@ -299,10 +334,16 @@ document.addEventListener('DOMContentLoaded', function() {
     updateEndTime(); // Set initial end time based on pre-filled values or defaults
 
     // Listen for changes on the checkbox
-    isPersonalUnavailabilityCheckbox.addEventListener('change', toggleClientAndServicesFields);
+    if (isPersonalUnavailabilityCheckbox) {
+        isPersonalUnavailabilityCheckbox.addEventListener('change', toggleClientAndServicesFields);
+    }
     // Listen for changes on start time and services select
-    startTimeInput.addEventListener('change', updateEndTime);
-    servicesSelect.addEventListener('change', updateEndTime);
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', updateEndTime);
+    }
+    if (servicesSelect) {
+        servicesSelect.addEventListener('change', updateEndTime);
+    }
 
 
     // --- New Client Modal Logic ---
@@ -310,86 +351,95 @@ document.addEventListener('DOMContentLoaded', function() {
     const newClientForm = document.getElementById('newClientForm');
     const clientSelectElement = document.getElementById('appointment_client'); // The main client select
 
-    newClientForm.addEventListener('submit', function(event) {
-        event.preventDefault(); // Prevent default form submission
+    if (newClientForm) { // Ensure the form exists before adding listener
+        newClientForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
 
-        const formData = new FormData(newClientForm);
-        const data = {};
-        for (let [key, value] of formData.entries()) {
-            data[key] = value;
-        }
+            const formData = new FormData(newClientForm);
+            const data = {};
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
 
-        // Clear previous error messages
-        const errorDiv = newClientForm.querySelector('.alert-danger');
-        if (errorDiv) {
-            errorDiv.remove();
-        }
+            // Clear previous error messages
+            const errorDiv = newClientForm.querySelector('.alert-danger');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
 
-        fetch('/client/create-ajax', { // This route will be created in ClientController
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                // You might need a CSRF token here if your Symfony setup requires it for AJAX POSTs
-                // 'X-CSRF-TOKEN': '{{ csrf_token('create_client_ajax') }}' // Example if needed
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                // Add new client to the select dropdown
-                const newOption = document.createElement('option');
-                newOption.value = result.clientId;
-                newOption.textContent = result.clientName;
-                clientSelectElement.appendChild(newOption);
+            fetch('/client/create-ajax', { // This route will be created in ClientController
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    // You might need a CSRF token here if your Symfony setup requires it for AJAX POSTs
+                    // 'X-CSRF-TOKEN': '{{ csrf_token('create_client_ajax') }}' // Example if needed
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    // Add new client to the select dropdown
+                    if (clientSelectElement) {
+                        const newOption = document.createElement('option');
+                        newOption.value = result.clientId;
+                        newOption.textContent = result.clientName;
+                        clientSelectElement.appendChild(newOption);
 
-                // Select the newly added client
-                clientSelectElement.value = result.clientId;
-
-                // Close the modal
-                bootstrap.Modal.getInstance(newClientModalElement).hide();
-
-                // Clear the modal form for next use
-                newClientForm.reset();
-
-                // Optionally, show a success message (using Bootstrap alert for consistency)
-                const successAlert = `
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i> Client "${result.clientName}" créé et sélectionné !
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `;
-                document.querySelector('main.px-md-4').insertAdjacentHTML('afterbegin', successAlert);
-                setTimeout(() => {
-                    const alert = document.querySelector('.alert.alert-success');
-                    if (alert) {
-                        bootstrap.Alert.getInstance(alert)?.close();
+                        // Select the newly added client
+                        clientSelectElement.value = result.clientId;
                     }
-                }, 5000); // Auto-close after 5 seconds
 
-            } else {
-                // Display error messages in the modal
+                    // Close the modal
+                    if (newClientModalElement) {
+                        const modalInstance = bootstrap.Modal.getInstance(newClientModalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                    }
+
+                    // Clear the modal form for next use
+                    newClientForm.reset();
+
+                    // Optionally, show a success message (using Bootstrap alert for consistency)
+                    const successAlert = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> Client "${result.clientName}" créé et sélectionné !
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    document.querySelector('main.px-md-4').insertAdjacentHTML('afterbegin', successAlert);
+                    setTimeout(() => {
+                        const alert = document.querySelector('.alert.alert-success');
+                        if (alert) {
+                            bootstrap.Alert.getInstance(alert)?.close();
+                        }
+                    }, 5000); // Auto-close after 5 seconds
+
+                } else {
+                    // Display error messages in the modal
+                    const errorAlert = `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Erreur lors de la création du client: ${result.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    newClientForm.prepend(errorAlert); // Add error message at the top of the form
+                }
+            })
+            .catch(error => {
+                console.error('Erreur Fetch:', error);
                 const errorAlert = `
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i> Erreur lors de la création du client: ${result.message}
+                        <i class="fas fa-exclamation-triangle me-2"></i> Une erreur réseau est survenue.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 `;
-                newClientForm.prepend(errorAlert); // Add error message at the top of the form
-            }
-        })
-        .catch(error => {
-            console.error('Erreur Fetch:', error);
-            const errorAlert = `
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i> Une erreur réseau est survenue.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            newClientForm.prepend(errorAlert);
+                newClientForm.prepend(errorAlert);
+            });
         });
-    });
+    }
 });
 </script>
 {% endblock %}

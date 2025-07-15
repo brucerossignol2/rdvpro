@@ -1,0 +1,45 @@
+{# templates/emails/client_appointment_confirmation.html.twig #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation de votre rendez-vous</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { width: 80%; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        h1 { color: #3F8574; }
+        ul { list-style: none; padding: 0; }
+        ul li { margin-bottom: 10px; }
+        strong { color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Confirmation de votre rendez-vous</h1>
+
+        <p>Bonjour {{ client.firstName }},</p>
+
+        <p>Nous sommes ravis de confirmer votre rendez-vous avec :</p>
+
+        <ul>
+            <li>
+                <strong>Professionnel :</strong>
+                {% if professional.businessName %}
+                    {{ professional.businessName }}
+                {% else %}
+                    {{ professional.firstName }} {{ professional.lastName }}
+                {% endif %}
+            </li>
+            {# The service variable is now passed from the controller #}
+            <li><strong>Service :</strong> {{ service.name }} ({{ service.duration }} min)</li>
+            <li><strong>Date :</strong> {{ startTime|date('d/m/Y', 'Europe/Paris') }}</li>
+            <li><strong>Heure :</strong> {{ startTime|date('H:i', 'Europe/Paris') }} - {{ endTime|date('H:i', 'Europe/Paris') }}</li>
+        </ul>
+
+        <p>Nous vous attendons avec impatience !</p>
+
+        <p>Cordialement,</p>
+        <p>L'équipe RDV Pro</p>
+    </div>
+</body>
+</html>

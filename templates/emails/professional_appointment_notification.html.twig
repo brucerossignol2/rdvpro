@@ -1,0 +1,42 @@
+{# templates/emails/professional_appointment_notification.html.twig #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nouveau Rendez-vous Confirmé</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { width: 80%; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        .header { background-color: #3F8574; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+        .button { display: inline-block; background-color: #3F8574; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Nouveau Rendez-vous Confirmé</h2>
+        </div>
+        <div class="content">
+            <p>Bonjour {% if professional.businessName %}{{ professional.businessName }}{% else %}{{ professional.firstName }} {{ professional.lastName }}{% endif %},</p>
+            <p>Un nouveau rendez-vous a été confirmé :</p>
+            <ul>
+                <li><strong>Client :</strong> {{ client.firstName }} {{ client.lastName }}</li>
+                <li><strong>Date :</strong> {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}</li>
+                <li><strong>Heure :</strong> {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - {{ appointment.endTime|date('H:i', 'Europe/Paris') }}</li>
+                <li><strong>Prestation :</strong> {{ service.name }}</li>
+                {% if client.email %}<li><strong>Email du client :</strong> <a href="mailto:{{ client.email }}">{{ client.email }}</a></li>{% endif %}
+                {% if client.telephone %}<li><strong>Téléphone du client :</strong> {{ client.telephone }}</li>{% endif %}
+            </ul>
+            <p>Veuillez consulter votre agenda pour plus de détails.</p>
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ url('app_professional_appointments_index') }}" class="button">Accéder à mon tableau de bord</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>Ceci est un e-mail automatique, merci de ne pas y répondre directement.</p>
+        </div>
+    </div>
+</body>
+</html>
