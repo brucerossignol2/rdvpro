@@ -15,6 +15,11 @@
             background-color: #3F8574 !important;
             border-color: #3F8574 !important; /* Ensure border also matches for consistency */
         }
+
+        .bg-in-progress {
+            background-color: #E37F29 !important;
+            border-color: #E37F29 !important;
+        }
     </style>
 {% endblock %}
 
@@ -58,12 +63,12 @@
                 {% set isInProgress = (now >= appointmentStart and now <= appointmentEnd) %}
 
                 <div class="col">
-                    <div class="card h-100 shadow-sm {% if isInProgress %}border-success{% endif %}"> {# Add border for in-progress #}
-                        <div class="card-header {% if isInProgress %}bg-success{% else %}bg-client-specific{% endif %} text-white"> {# Applied custom class here #}
+                    <div class="card h-100 shadow-sm {% if isInProgress %}border-warning{% endif %}"> {# Changed border color for in-progress #}
+                        <div class="card-header {% if isInProgress %}bg-in-progress{% else %}bg-client-specific{% endif %} text-white"> {# Applied custom class for in-progress #}
                             <h5 class="card-title mb-0">
                                 {{ appointment.title }}
                                 {% if isInProgress %}
-                                    <span class="badge bg-light text-success ms-2">En cours</span> {# Indicator for in-progress #}
+                                    <span class="badge bg-light text-warning ms-2">En cours</span> {# Changed badge color #}
                                 {% endif %}
                             </h5>
                         </div>

@@ -42,6 +42,11 @@ class Appointment
     #[ORM\Column]
     private ?bool $isPersonalUnavailability = false; // True if it's a personal block, not a client appointment
 
+    // AJOUTEZ CETTE PROPRIÉTÉ
+    #[ORM\Column(length: 50)] // Par exemple, 'pending', 'confirmed', 'cancelled'
+    private ?string $status = null;
+
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -52,6 +57,7 @@ class Appointment
     {
         $this->services = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
+        $this->status = 'pending'; // Définissez un statut par défaut lors de la création
     }
 
     public function getId(): ?int
@@ -187,5 +193,18 @@ class Appointment
             $totalDuration += $service->getDuration();
         }
         return $totalDuration;
+    }
+
+    // AJOUTEZ CES MÉTHODES (GETTER ET SETTER)
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $this->status = $status;
+
+        return $this;
     }
 }

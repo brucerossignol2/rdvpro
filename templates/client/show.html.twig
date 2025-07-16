@@ -1,0 +1,552 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ client.fullName }} - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION CLIENTS</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_index') }}">
+                            <i class="fas fa-users"></i> Liste des clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_client_new') }}">
+                            <i class="fas fa-user-plus"></i> Nouveau client
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_client_show', {'id': client.id}) }}">
+                            <i class="fas fa-user-eye"></i> Détails client
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-user text-primary"></i>
+                    {{ client.fullName }}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <a href="{{ path('app_client_edit', {'id': client.id}) }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Modifier
+                        </a>
+                        <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour à la liste
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user"></i>
+                                Informations personnelles
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Nom complet</label>
+                                        <div class="info-value">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-3">
+                                                    {{ client.firstName|slice(0,1)|upper }}{{ client.lastName|slice(0,1)|upper }}
+                                                </div>
+                                                <div>
+                                                    <strong>{{ client.fullName }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Prénom</label>
+                                        <div class="info-value">{{ client.firstName }}</div>
+                                    </div>
+
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Nom</label>
+                                        <div class="info-value">{{ client.lastName }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Email</label>
+                                        <div class="info-value">
+                                            <a href="mailto:{{ client.email }}" class="text-decoration-none">
+                                                <i class="fas fa-envelope text-primary"></i>
+                                                {{ client.email }}
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Téléphone</label>
+                                        <div class="info-value">
+                                            {% if client.telephone %}
+                                                <a href="tel:{{ client.telephone }}" class="text-decoration-none">
+                                                    <i class="fas fa-phone text-primary"></i>
+                                                    {{ client.telephone }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">
+                                                    <i class="fas fa-minus"></i>
+                                                    Non renseigné
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Inscrit le</label>
+                                        <div class="info-value">
+                                            <i class="fas fa-calendar-plus text-success"></i>
+                                            {{ client.createdAt|date('d/m/Y à H:i', 'Europe/Paris') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Adresse
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if client.rue and client.codePostal and client.ville %}
+                                <div class="address-display">
+                                    <div class="street mb-2">
+                                        <i class="fas fa-road text-muted"></i>
+                                        {{ client.rue }}
+                                    </div>
+                                    <div class="city">
+                                        <i class="fas fa-city text-muted"></i>
+                                        {{ client.codePostal }} {{ client.ville }}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-muted">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Adresse incomplète
+                                </div>
+                                <div class="mt-2">
+                                    {% if client.rue %}<div>Rue: {{ client.rue }}</div>{% endif %}
+                                    {% if client.codePostal %}<div>Code postal: {{ client.codePostal }}</div>{% endif %}
+                                    {% if client.ville %}<div>Ville: {{ client.ville }}</div>{% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-calendar-check"></i>
+                                Rendez-vous
+                                <span class="badge bg-light text-success ms-2">{{ client.appointments|length }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if client.appointments|length > 0 %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Heure</th>
+                                                <th>Service</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for appointment in client.appointments %}
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-calendar text-muted"></i>
+                                                        {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}
+                                                    </td>
+                                                    <td>
+                                                        <i class="fas fa-clock text-muted"></i>
+                                                        {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - 
+                                                        {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
+                                                    </td>
+                                                    <td>
+                                                        {# Iterate over the services collection or display title #}
+                                                        {% if appointment.services is not empty %}
+                                                            {{ appointment.services|map(service => service.name)|join(', ') }}
+                                                        {% elseif appointment.title %}
+                                                            {{ appointment.title }}
+                                                        {% else %}
+                                                            <span class="text-muted">Non défini</span>
+                                                        {% endif %}
+                                                    </td>
+
+                                                    <td>
+                                                        {% if appointment.status == 'confirmed' %}
+                                                            <span class="badge bg-success">Confirmé</span>
+                                                        {% elseif appointment.status == 'cancelled' %}
+                                                            <span class="badge bg-danger">Annulé</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">En attente</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ path('app_appointment_show', {'id': appointment.id}) }}" 
+                                                           class="btn btn-outline-primary btn-sm">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Aucun rendez-vous</h5>
+                                    <p class="text-muted">Ce client n'a pas encore de rendez-vous programmé.</p>
+                                    <a href="{{ path('app_appointment_new') }}" class="btn btn-success">
+                                        <i class="fas fa-plus"></i> Programmer un rendez-vous
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-bolt"></i> Actions rapides
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{{ path('app_client_edit', {'id': client.id}) }}" class="btn btn-primary">
+                                    <i class="fas fa-edit"></i> Modifier les informations
+                                </a>
+                                <a href="{{ path('app_appointment_new') }}" class="btn btn-success">
+                                    <i class="fas fa-calendar-plus"></i> Nouveau rendez-vous
+                                </a>
+                                <a href="mailto:{{ client.email }}" class="btn btn-outline-info">
+                                    <i class="fas fa-envelope"></i> Envoyer un email
+                                </a>
+                                {% if client.telephone %}
+                                    <a href="tel:{{ client.telephone }}" class="btn btn-outline-success">
+                                        <i class="fas fa-phone"></i> Appeler
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-info mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-chart-bar"></i> Statistiques
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <h4 class="text-primary">{{ client.appointments|length }}</h4>
+                                        <small class="text-muted">RDV total</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <h4 class="text-success">
+                                            {% set confirmedCount = 0 %}
+                                            {% for appointment in client.appointments %}
+                                                {% if appointment.status == 'confirmed' %}
+                                                    {% set confirmedCount = confirmedCount + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {{ confirmedCount }}
+                                        </h4>
+                                        <small class="text-muted">Confirmés</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    {% if client.createdAt %}
+                                        {% set now = date() %}
+                                        {% set createdAt = client.createdAt %}
+                                        {% set daysDiff = now.diff(createdAt).days %}
+                                        Client depuis {{ daysDiff }} jour{{ daysDiff > 1 ? 's' : '' }}
+                                    {% else %}
+                                        Client récent
+                                    {% endif %}
+                                </small>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-exclamation-triangle"></i> Zone dangereuse
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small">
+                                La suppression d'un client effacera définitivement toutes ses données et ses rendez-vous.
+                            </p>
+                            <button type="button" 
+                                    class="btn btn-outline-danger btn-sm w-100" 
+                                    onclick="confirmDelete({{ client.id }}, '{{ client.fullName|e('js') }}', '{{ csrf_token('delete' ~ client.id) }}')">
+                                <i class="fas fa-trash"></i> Supprimer le client
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le client <strong id="clientNameToDelete"></strong> ?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Cette action est irréversible et supprimera également tous les rendez-vous associés à ce client.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" id="deleteToken">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles généraux du tableau de bord et de la barre latérale */
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Styles des cartes */
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+/* Styles des informations */
+.info-group {
+    border-left: 3px solid #007bff;
+    padding-left: 1rem;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.info-value {
+    font-size: 1rem;
+    color: #212529;
+    font-weight: 500;
+}
+
+/* Avatar */
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Adresse */
+.address-display {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: .5rem;
+    border-left: 4px solid #17a2b8;
+}
+
+.address-display .street {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.address-display .city {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+/* Statistiques */
+.stat-item h4 {
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+}
+
+/* Animations */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.card {
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tableaux */
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+    
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+}
+
+/* Alertes */
+.alert {
+    border: none;
+    border-radius: .5rem;
+}
+
+/* Icônes Font Awesome */
+.fas {
+    margin-right: 0.5rem;
+}
+
+.fas:last-child {
+    margin-right: 0;
+}
+</style>
+
+<script>
+// Fonction de confirmation de suppression
+function confirmDelete(clientId, clientName, csrfToken) {
+    document.getElementById('clientNameToDelete').textContent = clientName;
+    document.getElementById('deleteForm').action = '/client/' + clientId;
+    document.getElementById('deleteToken').value = csrfToken;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Animation d'entrée
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.3s ease-in-out';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

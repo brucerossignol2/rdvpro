@@ -1,0 +1,415 @@
+{# templates/appointment/show.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Rendez-vous #{{ appointment.id }} - RDV Pro{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>GESTION RENDEZ-VOUS</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_appointment_index') }}">
+                            <i class="fas fa-calendar-alt"></i> Calendrier
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ path('app_appointment_new') }}">
+                            <i class="fas fa-calendar-plus"></i> Nouveau rendez-vous
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {# Link back to the client's details if the appointment has a client #}
+                        {% if appointment.client %}
+                        <a class="nav-link" href="{{ path('app_client_show', {'id': appointment.client.id}) }}">
+                            <i class="fas fa-user"></i> Détails client
+                        </a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ path('app_appointment_show', {'id': appointment.id}) }}">
+                            <i class="fas fa-search"></i> Détails du RDV
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-calendar-check text-primary"></i>
+                    Détails du Rendez-vous #{{ appointment.id }}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        {# Boutons d'action pour le RDV #}
+                        <a href="{{ path('app_appointment_edit', {'id': appointment.id}) }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Modifier
+                        </a>
+                        <button type="button" 
+                                class="btn btn-danger" 
+                                onclick="confirmDeleteAppointment({{ appointment.id }}, '{{ appointment.title|e('js') }}', '{{ csrf_token('delete' ~ appointment.id) }}')">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
+                    <a href="{{ path('app_appointment_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour au calendrier
+                    </a>
+                </div>
+            </div>
+
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                Informations du Rendez-vous
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Titre</label>
+                                        <div class="info-value">{{ appointment.title }}</div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Date</label>
+                                        <div class="info-value">
+                                            <i class="fas fa-calendar text-muted"></i>
+                                            {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}
+                                        </div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Heure</label>
+                                        <div class="info-value">
+                                            <i class="fas fa-clock text-muted"></i>
+                                            {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - 
+                                            {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
+                                        </div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Durée estimée</label>
+                                        <div class="info-value">
+                                            {% set duration = date(appointment.endTime).diff(date(appointment.startTime)) %}
+                                            {% if duration.h > 0 %}{{ duration.h }}h{% endif %}
+                                            {% if duration.i > 0 %}{{ duration.i }}min{% endif %}
+                                            {% if duration.h == 0 and duration.i == 0 %}Moins d'une minute{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Statut</label>
+                                        <div class="info-value">
+                                            {% if appointment.isIsPersonalUnavailability %}
+                                                <span class="badge bg-danger"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span>
+                                            {% else %}
+                                                {% if appointment.status == 'confirmed' %}
+                                                    <span class="badge bg-success"><i class="fas fa-check-circle"></i> Confirmé</span>
+                                                {% elseif appointment.status == 'cancelled' %}
+                                                    <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Annulé</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning"><i class="fas fa-hourglass-half"></i> En attente</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Créé le</label>
+                                        <div class="info-value">
+                                            <i class="fas fa-calendar-plus text-success"></i>
+                                            {{ appointment.createdAt|date('d/m/Y à H:i', 'Europe/Paris') }}
+                                        </div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Services</label>
+                                        <div class="info-value">
+                                            {% if appointment.services is not empty %}
+                                                {{ appointment.services|map(service => service.name)|join(', ') }}
+                                            {% else %}
+                                                <span class="text-muted">Aucun service associé</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="info-group mb-3">
+                                <label class="info-label">Description</label>
+                                <div class="info-value">
+                                    {% if appointment.description %}
+                                        {{ appointment.description|nl2br }}
+                                    {% else %}
+                                        <span class="text-muted">Aucune description</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    {% if not appointment.isIsPersonalUnavailability %}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user"></i>
+                                Client
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if appointment.client %}
+                                <div class="info-group mb-3">
+                                    <label class="info-label">Nom complet</label>
+                                    <div class="info-value">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle me-3">
+                                                {{ appointment.client.firstName|slice(0,1)|upper }}{{ appointment.client.lastName|slice(0,1)|upper }}
+                                            </div>
+                                            <div>
+                                                <strong>
+                                                    <a href="{{ path('app_client_show', {'id': appointment.client.id}) }}" class="text-decoration-none">
+                                                        {{ appointment.client.fullName }}
+                                                    </a>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="info-group mb-3">
+                                    <label class="info-label">Email</label>
+                                    <div class="info-value">
+                                        <a href="mailto:{{ appointment.client.email }}" class="text-decoration-none">
+                                            <i class="fas fa-envelope text-primary"></i>
+                                            {{ appointment.client.email }}
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="info-group mb-3">
+                                    <label class="info-label">Téléphone</label>
+                                    <div class="info-value">
+                                        {% if appointment.client.telephone %}
+                                            <a href="tel:{{ appointment.client.telephone }}" class="text-decoration-none">
+                                                <i class="fas fa-phone text-primary"></i>
+                                                {{ appointment.client.telephone }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">Non renseigné</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Ce rendez-vous n'est pas associé à un client.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-secondary mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cogs"></i>
+                                Actions sur le statut
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if appointment.status != 'confirmed' %}
+                                <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'confirmed'}) }}" method="post" class="d-inline-block me-2">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('update_status' ~ appointment.id ~ 'confirmed') }}">
+                                    <button type="submit" class="btn btn-success w-100 mb-2">
+                                        <i class="fas fa-check-circle"></i> Confirmer le RDV
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {% if appointment.status != 'cancelled' %}
+                                <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'cancelled'}) }}" method="post" class="d-inline-block">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('update_status' ~ appointment.id ~ 'cancelled') }}">
+                                    <button type="submit" class="btn btn-warning w-100 mb-2">
+                                        <i class="fas fa-times-circle"></i> Annuler le RDV
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {% if appointment.status != 'pending' and appointment.status != 'confirmed' %}
+                                {# Optionnel: bouton pour remettre en attente, utile si vous avez des statuts intermédiaires #}
+                                <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'pending'}) }}" method="post" class="d-inline-block">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('update_status' ~ appointment.id ~ 'pending') }}">
+                                    <button type="submit" class="btn btn-info w-100">
+                                        <i class="fas fa-hourglass-half"></i> Remettre en attente
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %} {# End if not isPersonalUnavailability #}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteAppointmentModal" tabindex="-1" aria-labelledby="deleteAppointmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteAppointmentModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Confirmer la suppression du rendez-vous
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le rendez-vous "<strong id="appointmentTitleToDelete"></strong>" ?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Cette action est irréversible.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form id="deleteAppointmentForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="POST"> {# Method is POST for Symfony's delete route #}
+                    <input type="hidden" name="_token" id="deleteAppointmentToken">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles généraux du tableau de bord et de la barre latérale */
+.sidebar {
+    min-height: 100vh;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    margin: .125rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 123, 255, .1);
+    color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Styles des cartes */
+.card {
+    border: none;
+    border-radius: .5rem;
+}
+
+/* Styles des informations */
+.info-group {
+    border-left: 3px solid #007bff;
+    padding-left: 1rem;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.info-value {
+    font-size: 1rem;
+    color: #212529;
+    font-weight: 500;
+}
+
+/* Avatar */
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Alertes */
+.alert {
+    border: none;
+    border-radius: .5rem;
+}
+
+/* Icônes Font Awesome */
+.fas {
+    margin-right: 0.5rem;
+}
+
+.fas:last-child {
+    margin-right: 0;
+}
+
+/* Actions de statut */
+.card-body .btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+</style>
+
+<script>
+// Fonction de confirmation de suppression pour le rendez-vous
+function confirmDeleteAppointment(appointmentId, appointmentTitle, csrfToken) {
+    document.getElementById('appointmentTitleToDelete').textContent = appointmentTitle;
+    // Set the form action to the appointment delete route
+    document.getElementById('deleteAppointmentForm').action = '/appointments/' + appointmentId;
+    document.getElementById('deleteAppointmentToken').value = csrfToken;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteAppointmentModal'));
+    modal.show();
+}
+
+// Animation d'entrée pour les cartes
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.3s ease-in-out';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

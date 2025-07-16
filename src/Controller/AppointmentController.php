@@ -3,13 +3,16 @@
 namespace App\Controller;
 
 use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mime\Email;
 use App\Entity\Appointment;
-use App\Entity\Client; // Import Client entity
+use App\Entity\Client;
 use App\Form\AppointmentType;
 use App\Repository\AppointmentRepository;
 use App\Repository\BusinessHoursRepository;
-use App\Repository\ServiceRepository; // Import ServiceRepository
-use App\Repository\ClientRepository; // Import ClientRepository
+use App\Repository\ServiceRepository;
+use App\Repository\ClientRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,22 +22,18 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
-use DateTime; // Import DateTime class
-use DateTimeZone; // Import DateTimeZone class
-use DateInterval; // Import DateInterval for time calculations
-use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
-use Symfony\Component\Mailer\Transport; // Import Transport
+use DateTime;
+use DateTimeZone;
+use DateInterval;
 
 #[Route('/appointments')]
 #[IsGranted('ROLE_USER')] // Restrict access to authenticated users
 class AppointmentController extends AbstractController
 {
 
-    private MailerInterface $mailer; // Déclarez le type
-    private CsrfTokenManagerInterface $csrfTokenManager; // Déclarez le type
+    private MailerInterface $mailer;
+    private CsrfTokenManagerInterface $csrfTokenManager;
 
-    // Un seul constructeur qui prend toutes les dépendances nécessaires
     public function __construct(
         MailerInterface $mailer,
         CsrfTokenManagerInterface $csrfTokenManager
@@ -245,128 +244,6 @@ class AppointmentController extends AbstractController
                 $this->addFlash('error', 'Le client spécifié n\'existe pas ou ne vous appartient pas.');
             }
         }
-
-        $form = $this->createForm(AppointmentType::class, $appointment);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            // Check for overlaps with existing appointments/unavailabilities
-            $existingAppointments = $entityManager->getRepository(Appointment::class)->findOverlappingAppointments(
-                $professional,
-                $appointment->getStartTime(),
-                $appointment->getEndTime(),
-                $appointment->getId() // Exclude current appointment if editing
-                );
-
-            if (count($existingAppointments) > 0) {
-                $this->addFlash('error', 'Ce créneau horaire chevauche un rendez-vous ou une indisponibilité existante.');
-                return $this->render('appointment/new.html.twig', [
-                    'appointment' => $appointment,
-                    'form' => $form,
-                    'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
-                ]);
-            }
-
-            // Validate against business hours if it's a client appointment
-            if (!$appointment->isIsPersonalUnavailability()) {
-                $isWithinBusinessHours = $this->isAppointmentWithinBusinessHours(
-                    $professional,
-                    $appointment->getStartTime(),
-                    $appointment->getEndTime(),
-                    $businessHoursRepository
-                );
-
-                if (!$isWithinBusinessHours) {
-                    $this->addFlash('error', 'Le rendez-vous doit être dans vos heures d\'ouverture définies.');
-                    return $this->render('appointment/new.html.twig', [
-                        'appointment' => $appointment,
-                        'form' => $form,
-                        'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
-                    ]);
-                }
-            }
-
-            $entityManager->persist($appointment);
-            $entityManager->flush();
-
-            // === DÉBUT DU CODE POUR L'ENVOI D'EMAIL ===
-            // AJOUT DE LA CONDITION : Ne tente l'envoi d'email que si ce n'est PAS une indisponibilité personnelle
-            if (!$appointment->isIsPersonalUnavailability()) {
-                try {
-                    /** @var \App\Entity\Client|null $client */
-                    $client = $appointment->getClient();
-
-                    /** @var \App\Entity\User|null $professional */
-                    $professional = $this->getUser();
-
-                    if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
-                        // Load .env file
-                        $dotenv = new Dotenv();
-                        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env'); // Adjust path as needed for your project structure
-
-                        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
-
-                        if (!$mailerDsn) {
-                            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
-                        }
-
-                        $transport = Transport::fromDsn($mailerDsn);
-                        $mailer = new Mailer($transport);
-
-                        $email = (new Email())
-                            ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr') // You can also get this from .env if needed
-                            ->to($client->getEmail())
-                            ->subject('Confirmation de votre rendez-vous avec ' . $professional->getFirstName() . ' ' . $professional->getLastName())
-                            ->html($this->renderView(
-                                'emails/appointment_confirmation.html.twig',
-                                [
-                                    'appointment' => $appointment,
-                                    'professional' => $professional,
-                                    'client' => $client,
-                                ]
-                            ));
-                       if ($professional->getEmail()) {
-                            $emailMessage->addReplyTo($professional->getEmail());
-                        }
-
-                        $mailer->send($email);
-                        $this->addFlash('success', 'Rendez-vous créé avec succès et un email de confirmation a été envoyé au client.');
-                    } else {
-                        $this->addFlash('warning', 'Rendez-vous créé, mais impossible d\'envoyer l\'email de confirmation au client (email manquant).');
-                    }
-                } catch (\Exception $e) {
-                    $this->addFlash('error', 'Rendez-vous créé, mais une erreur est survenue lors de l\'envoi de l\'email : ' . $e->getMessage());
-                }
-            } else {
-                // Message de succès spécifique pour une indisponibilité personnelle
-                $this->addFlash('success', 'Indisponibilité personnelle créée avec succès.');
-            }
-            // === FIN DU CODE POUR L'ENVOI D'EMAIL ===
-
-            return $this->redirectToRoute('app_appointment_index');
-        }
-
-        return $this->render('appointment/new.html.twig', [
-            'appointment' => $appointment,
-            'form' => $form,
-            'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
-        ]);
-    }
-
-    /**
-     * Edits an existing appointment or personal unavailability.
-     */
-    #[Route('/{id}/edit', name: 'app_appointment_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Appointment $appointment, EntityManagerInterface $entityManager, BusinessHoursRepository $businessHoursRepository, ServiceRepository $serviceRepository): Response
-    {
-        /** @var \App\Entity\User $professional */
-        $professional = $this->getUser();
-
-        // Ensure the appointment belongs to the logged-in professional
-        if ($appointment->getProfessional() !== $professional) {
-            throw $this->createAccessDeniedException('Vous n\'êtes pas autorisé à modifier ce rendez-vous.');
-        }
-
         $form = $this->createForm(AppointmentType::class, $appointment);
         $form->handleRequest($request);
 
@@ -378,7 +255,185 @@ class AppointmentController extends AbstractController
                 $appointment->getEndTime(),
                 $appointment->getId() // Exclude current appointment if editing
             );
+            if (count($existingAppointments) > 0) {
+                $this->addFlash('error', 'Ce créneau horaire chevauche un rendez-vous ou une indisponibilité existante.');
+                return $this->render('appointment/new.html.twig', [
+                    'appointment' => $appointment,
+                    'form' => $form,
+                    'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+                ]);
+            }
+            // Validate against business hours if it's a client appointment
+            if (!$appointment->isIsPersonalUnavailability()) {
+                $isWithinBusinessHours = $this->isAppointmentWithinBusinessHours(
+                    $professional,
+                    $appointment->getStartTime(),
+                    $appointment->getEndTime(),
+                    $businessHoursRepository
+                );
+                if (!$isWithinBusinessHours) {
+                    $this->addFlash('error', 'Le rendez-vous doit être dans vos heures d\'ouverture définies.');
+                    return $this->render('appointment/new.html.twig', [
+                        'appointment' => $appointment,
+                        'form' => $form,
+                        'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+                    ]);
+                }
+            }
+            $entityManager->persist($appointment);
+            $entityManager->flush();
 
+            // === DÉBUT DU CODE POUR L'ENVOI D'EMAIL ===
+            // AJOUT DE LA CONDITION : Ne tente l'envoi d'email que si ce n'est PAS une indisponibilité personnelle
+            if (!$appointment->isIsPersonalUnavailability()) {
+                try {
+                    /** @var \App\Entity\Client|null $client */
+                    $client = $appointment->getClient();
+                    /** @var \App\Entity\User|null $professional */
+                    $professional = $this->getUser();
+                    if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
+                        // Load .env file
+                        $dotenv = new Dotenv();
+                        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
+
+                        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+
+                        if (!$mailerDsn) {
+                            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                        }
+                        $transport = Transport::fromDsn($mailerDsn);
+                        $mailer = new Mailer($transport);
+                        $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
+                        $email = (new Email())
+                            ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                            ->to($client->getEmail())
+                            ->subject('Confirmation de votre rendez-vous avec ' . $professionalNameForEmail)
+                            ->html($this->renderView('emails/appointment_confirmation.html.twig', [
+                                'appointment' => $appointment,
+                                'client' => $client,
+                                'professional' => $professional,
+                            ]));
+
+                        $mailer->send($email);
+                        $this->addFlash('success', 'Rendez-vous créé et email de confirmation envoyé au client.');
+                    } else {
+                        $this->addFlash('warning', 'Rendez-vous créé, mais l\'email de confirmation n\'a pas pu être envoyé (client ou professionnel manquant, ou email manquant).');
+                    }
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Rendez-vous créé, mais une erreur est survenue lors de l\'envoi de l\'email de confirmation : ' . $e->getMessage());
+                }
+            } else {
+                $this->addFlash('success', 'Indisponibilité personnelle créée avec succès.');
+            }
+            // === FIN DU CODE POUR L'ENVOI D'EMAIL ===
+
+            return $this->redirectToRoute('app_appointment_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('appointment/new.html.twig', [
+            'appointment' => $appointment,
+            'form' => $form,
+            'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+        ]);
+    }
+
+    /**
+     * Displays a single appointment.
+     */
+    #[Route('/{id}', name: 'app_appointment_show', methods: ['GET'])]
+    public function show(Appointment $appointment): Response
+    {
+        /** @var \App\Entity\User $professional */
+        $professional = $this->getUser();
+
+        // Security check: ensure the professional can only view their own appointments
+        if ($appointment->getProfessional() !== $professional) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour voir ce rendez-vous.');
+        }
+
+        return $this->render('appointment/show.html.twig', [
+            'appointment' => $appointment,
+        ]);
+    }
+
+    /**
+     * Updates the status of an appointment.
+     */
+    #[Route('/{id}/status/{status}', name: 'app_appointment_update_status', methods: ['POST'])]
+    public function updateStatus(Request $request, Appointment $appointment, string $status, EntityManagerInterface $entityManager): Response
+    {
+        /** @var \App\Entity\User $professional */
+        $professional = $this->getUser();
+
+        // Security check: ensure the professional can only update their own appointments
+        if ($appointment->getProfessional() !== $professional) {
+            $this->addFlash('error', 'Vous n\'avez pas les droits pour modifier le statut de ce rendez-vous.');
+            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+        }
+
+        // Validate the incoming status value to prevent invalid data
+        $allowedStatuses = ['pending', 'confirmed', 'cancelled'];
+        if (!in_array($status, $allowedStatuses)) {
+            $this->addFlash('error', 'Statut invalide fourni.');
+            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+        }
+
+        // Validate CSRF token
+        $tokenName = 'update_status' . $appointment->getId() . $status;
+        if (!$this->isCsrfTokenValid($tokenName, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+        }
+
+        // Update the status
+        $appointment->setStatus($status);
+        $entityManager->flush();
+
+        // Add a flash message based on the new status
+        switch ($status) {
+            case 'confirmed':
+                $this->addFlash('success', 'Le rendez-vous a été confirmé.');
+                break;
+            case 'cancelled':
+                $this->addFlash('warning', 'Le rendez-vous a été annulé.');
+                break;
+            case 'pending':
+                $this->addFlash('info', 'Le rendez-vous a été remis en attente.');
+                break;
+        }
+
+        // You might want to send an email notification here if the status changes
+        // Example: if ($status === 'confirmed' || $status === 'cancelled') { sendEmailNotification($appointment); }
+
+        return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+    }
+
+
+    /**
+     * Edits an existing appointment or personal unavailability.
+     */
+    #[Route('/{id}/edit', name: 'app_appointment_edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, Appointment $appointment, EntityManagerInterface $entityManager, BusinessHoursRepository $businessHoursRepository, ServiceRepository $serviceRepository, ClientRepository $clientRepository): Response
+    {
+        /** @var \App\Entity\User $professional */
+        $professional = $this->getUser();
+
+        // Security check: ensure the professional can only edit their own appointments
+        if ($appointment->getProfessional() !== $professional) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour modifier ce rendez-vous.');
+        }
+
+        $form = $this->createForm(AppointmentType::class, $appointment);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Check for overlaps with existing appointments/unavailabilities
+            $existingAppointments = $entityManager->getRepository(Appointment::class)->findOverlappingAppointments(
+                $professional,
+                $appointment->getStartTime(),
+                $appointment->getEndTime(),
+                $appointment->getId() // Exclude current appointment (since we are editing it)
+            );
             if (count($existingAppointments) > 0) {
                 $this->addFlash('error', 'Ce créneau horaire chevauche un rendez-vous ou une indisponibilité existante.');
                 return $this->render('appointment/edit.html.twig', [
@@ -396,7 +451,6 @@ class AppointmentController extends AbstractController
                     $appointment->getEndTime(),
                     $businessHoursRepository
                 );
-
                 if (!$isWithinBusinessHours) {
                     $this->addFlash('error', 'Le rendez-vous doit être dans vos heures d\'ouverture définies.');
                     return $this->render('appointment/edit.html.twig', [
@@ -409,15 +463,53 @@ class AppointmentController extends AbstractController
 
             $entityManager->flush();
 
-            // AJOUT DE LA CONDITION POUR LE MESSAGE DE SUCCÈS LORS DE L'ÉDITION ÉGALEMENT
+            // === DÉBUT DU CODE POUR L'ENVOI D'EMAIL (si statut change ou infos importantes) ===
+            // Pour l'édition, la logique d'envoi d'email peut être plus complexe.
+            // Par exemple, n'envoyer un email que si le statut change, ou si les heures/dates changent.
+            // Pour l'instant, je laisse la même logique que pour la création (hors indisponibilité personnelle)
             if (!$appointment->isIsPersonalUnavailability()) {
-                $this->addFlash('success', 'Le rendez-vous a été mis à jour avec succès !');
-            } else {
-                $this->addFlash('success', 'L\'indisponibilité personnelle a été mise à jour avec succès !');
-            }
-            
+                try {
+                    /** @var \App\Entity\Client|null $client */
+                    $client = $appointment->getClient();
+                    /** @var \App\Entity\User|null $professional */
+                    $professional = $this->getUser();
+                    if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
+                        // Load .env file
+                        $dotenv = new Dotenv();
+                        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
-            return $this->redirectToRoute('app_appointment_index');
+                        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+
+                        if (!$mailerDsn) {
+                            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+                        }
+                        $transport = Transport::fromDsn($mailerDsn);
+                        $mailer = new Mailer($transport);
+                        $professionalNameForEmail = $professional->getFirstName() . ' ' . $professional->getLastName();
+                        $email = (new Email())
+                            ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                            ->to($client->getEmail())
+                            ->subject('Mise à jour de votre rendez-vous avec ' . $professionalNameForEmail)
+                            ->html($this->renderView('emails/appointment_update.html.twig', [
+                                'appointment' => $appointment,
+                                'client' => $client,
+                                'professional' => $professional,
+                            ]));
+
+                        $mailer->send($email);
+                        $this->addFlash('success', 'Rendez-vous modifié et email de mise à jour envoyé au client.');
+                    } else {
+                        $this->addFlash('warning', 'Rendez-vous modifié, mais l\'email de mise à jour n\'a pas pu être envoyé.');
+                    }
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Rendez-vous modifié, mais une erreur est survenue lors de l\'envoi de l\'email de mise à jour : ' . $e->getMessage());
+                }
+            } else {
+                $this->addFlash('success', 'Indisponibilité personnelle modifiée avec succès.');
+            }
+            // === FIN DU CODE POUR L'ENVOI D'EMAIL ===
+
+            return $this->redirectToRoute('app_appointment_index', [], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('appointment/edit.html.twig', [
@@ -428,73 +520,7 @@ class AppointmentController extends AbstractController
     }
 
     /**
-     * Handles AJAX request to update appointment times (for drag/drop/resize).
-     */
-    #[Route('/{id}/update-times', name: 'app_appointment_update_times', methods: ['POST'])]
-    public function updateTimes(Request $request, Appointment $appointment, EntityManagerInterface $entityManager, BusinessHoursRepository $businessHoursRepository): JsonResponse
-    {
-        /** @var \App\Entity\User $professional */
-        $professional = $this->getUser();
-
-        // Ensure the appointment belongs to the logged-in professional
-        if ($appointment->getProfessional() !== $professional) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Accès non autorisé.'], Response::HTTP_FORBIDDEN);
-        }
-
-        // Validate CSRF token for AJAX update
-        if (!$this->isCsrfTokenValid('update_appointment_times', $request->headers->get('X-CSRF-TOKEN'))) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Token CSRF invalide.'], Response::HTTP_FORBIDDEN);
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (!isset($data['start']) || !isset($data['end'])) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Données de temps manquantes.'], Response::HTTP_BAD_REQUEST);
-        }
-
-        try {
-            $newStartTime = new \DateTime($data['start']);
-            $newEndTime = new \DateTime($data['end']);
-        } catch (\Exception $e) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Format de date ou d\'heure invalide.'], Response::HTTP_BAD_REQUEST);
-        }
-
-        // Check for overlaps with existing appointments/unavailabilities
-        $existingAppointments = $entityManager->getRepository(Appointment::class)->findOverlappingAppointments(
-            $professional,
-            $newStartTime,
-            $newEndTime,
-            $appointment->getId() // Exclude current appointment
-        );
-
-        if (count($existingAppointments) > 0) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Ce créneau horaire chevauche un rendez-vous ou une indisponibilité existante.'], Response::HTTP_CONFLICT);
-        }
-
-        // Validate against business hours if it's a client appointment
-        if (!$appointment->isIsPersonalUnavailability()) {
-            $isWithinBusinessHours = $this->isAppointmentWithinBusinessHours(
-                $professional,
-                $newStartTime,
-                $newEndTime,
-                $businessHoursRepository
-            );
-
-            if (!$isWithinBusinessHours) {
-                return new JsonResponse(['status' => 'error', 'message' => 'Le rendez-vous doit être dans vos heures d\'ouverture définies.'], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
-        $appointment->setStartTime($newStartTime);
-        $appointment->setEndTime($newEndTime);
-        $entityManager->flush();
-
-        return new JsonResponse(['status' => 'success', 'message' => 'Rendez-vous mis à jour avec succès.']);
-    }
-
-
-    /**
-     * Deletes an appointment.
+     * Handles AJAX requests to delete an appointment.
      */
     #[Route('/{id}', name: 'app_appointment_delete', methods: ['POST'])]
     public function delete(Request $request, Appointment $appointment, EntityManagerInterface $entityManager): Response
@@ -502,61 +528,52 @@ class AppointmentController extends AbstractController
         /** @var \App\Entity\User $professional */
         $professional = $this->getUser();
 
-        // Ensure the appointment belongs to the logged-in professional
+        // Security check: ensure the professional can only delete their own appointments
         if ($appointment->getProfessional() !== $professional) {
-            throw $this->createAccessDeniedException('Vous n\'êtes pas autorisé à supprimer ce rendez-vous.');
+            // If the user tries to delete an appointment they don't own, return a 403 Forbidden response
+            return new JsonResponse(['status' => 'error', 'message' => 'Accès non autorisé.'], Response::HTTP_FORBIDDEN);
         }
 
-        // The CSRF token for delete is now passed via extendedProps.deleteToken
-        // We need to retrieve it from the request body or header if it's an AJAX request
-        // For a standard form submission, it's in request->request->get('_token')
-        // The token name is 'delete' concatenated with the appointment ID
-        if ($this->isCsrfTokenValid('delete' . $appointment->getId(), $request->request->get('_token'))) {
+        $csrfToken = $request->request->get('_token');
+        if ($this->isCsrfTokenValid('delete' . $appointment->getId(), $csrfToken)) {
             $entityManager->remove($appointment);
             $entityManager->flush();
+
             $this->addFlash('success', 'Le rendez-vous a été supprimé avec succès.');
-        } else {
-            $this->addFlash('error', 'Token CSRF invalide. La suppression n\'a pas pu être effectuée.');
+            return new JsonResponse(['status' => 'success', 'message' => 'Rendez-vous supprimé avec succès.']);
         }
 
-        // Check if the request came from the calendar page to redirect back there
-        if ($request->request->get('redirect_to_calendar') === 'true') {
-            return $this->redirectToRoute('app_appointment_index');
-        }
-
-        // Otherwise, redirect back to the professional's appointment list
-        return $this->redirectToRoute('app_professional_appointments_index');
+        $this->addFlash('error', 'Jeton CSRF invalide.');
+        return new JsonResponse(['status' => 'error', 'message' => 'Jeton CSRF invalide.'], Response::HTTP_BAD_REQUEST);
     }
 
     /**
-     * Helper to check if an appointment falls within the professional's business hours.
-     * This considers both single and double time slots for each day.
+     * Helper method to check if an appointment is within professional's business hours.
      */
     private function isAppointmentWithinBusinessHours(
         \App\Entity\User $professional,
-        \DateTimeInterface $appointmentStart,
-        \DateTimeInterface $appointmentEnd,
+        \DateTimeInterface $appointmentStartTime,
+        \DateTimeInterface $appointmentEndTime,
         BusinessHoursRepository $businessHoursRepository
     ): bool {
-        $dayOfWeek = (int)$appointmentStart->format('N'); // 1 (for Monday) through 7 (for Sunday)
-        $businessHour = $businessHoursRepository->findOneBy([
-            'professional' => $professional,
-            'dayOfWeek' => $dayOfWeek
-        ]);
+        $dayOfWeek = (int)$appointmentStartTime->format('N'); // 1 (for Monday) through 7 (for Sunday)
+        $businessHour = $businessHoursRepository->findOneBy(['professional' => $professional, 'dayOfWeek' => $dayOfWeek]);
 
         if (!$businessHour || !$businessHour->isIsOpen()) {
-            return false; // Professional is closed on this day
+            return false; // No business hours defined or closed for this day
         }
 
-        $apptStartSec = $appointmentStart->getTimestamp();
-        $apptEndSec = $appointmentEnd->getTimestamp();
+        $apptStartSec = $appointmentStartTime->getTimestamp();
+        $apptEndSec = $appointmentEndTime->getTimestamp();
 
-        // Get today's date part for time comparisons
-        $todayDate = $appointmentStart->format('Y-m-d');
+        // Create DateTime objects for today's date with business hours times
+        $todayDate = $appointmentStartTime->format('Y-m-d');
 
-        // Convert business hours to DateTime objects for comparison on the same date
+        // First time slot
         $bhStart1 = $businessHour->getStartTime() ? new \DateTime($todayDate . ' ' . $businessHour->getStartTime()->format('H:i:s')) : null;
         $bhEnd1 = $businessHour->getEndTime() ? new \DateTime($todayDate . ' ' . $businessHour->getEndTime()->format('H:i:s')) : null;
+
+        // Second time slot
         $bhStart2 = $businessHour->getStartTime2() ? new \DateTime($todayDate . ' ' . $businessHour->getStartTime2()->format('H:i:s')) : null;
         $bhEnd2 = $businessHour->getEndTime2() ? new \DateTime($todayDate . ' ' . $businessHour->getEndTime2()->format('H:i:s')) : null;
 
@@ -564,7 +581,7 @@ class AppointmentController extends AbstractController
         $inFirstSlot = ($bhStart1 && $bhEnd1 && $apptStartSec >= $bhStart1->getTimestamp() && $apptEndSec <= $bhEnd1->getTimestamp());
 
         // Check if appointment is fully contained within the second time slot
-        $inSecondSlot = ($bhStart2 && $bhEnd2 && $apptStartSec >= $bhStart2->getTimestamp() && $apptEndSec <= $bhEnd2->getTimestamp());
+        $inSecondSlot = ($bhStart2 && $bh2End2 && $apptStartSec >= $bhStart2->getTimestamp() && $apptEndSec <= $bhEnd2->getTimestamp());
 
         // If there's a second slot, the appointment must be fully within one of the two slots
         if ($bhStart2 && $bhEnd2) {
@@ -586,6 +603,7 @@ class AppointmentController extends AbstractController
             $servicesData[] = [
                 'id' => $service->getId(),
                 'duration' => $service->getDuration(),
+                'name' => $service->getName(),
             ];
         }
         return json_encode($servicesData);
