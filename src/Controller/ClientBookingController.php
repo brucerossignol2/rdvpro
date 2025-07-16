@@ -386,7 +386,7 @@ class ClientBookingController extends AbstractController
                             ]
                         ));
 
-                    // définir l'email du client comme reply-to pour que le pro puisse répondre directement
+                    // définir l'email du client comme reply to pour que le pro puisse répondre directement
                     if ($client->getEmail()) {
                         $emailToProfessional->replyTo($client->getEmail());
                     }
