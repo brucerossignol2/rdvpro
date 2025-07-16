@@ -2,6 +2,11 @@
 // src/Controller/ClientBookingController.php
 namespace App\Controller;
 
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mime\Email;
 use App\Entity\Client;
 use App\Entity\User; // Represents the Professional
 use App\Entity\Service;
@@ -22,12 +27,6 @@ use Symfony\Component\HttpFoundation\JsonResponse; // Needed for AJAX if you add
 use DateTime; // Import DateTime class
 use DateTimeZone; // Import DateTimeZone class
 use DateInterval; // Import DateInterval for time calculations
-
-// IMPORTS POUR L'EMAIL
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
-use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
-use Symfony\Component\Mailer\Transport; // Import Transport
 
 #[Route('/book')]
 class ClientBookingController extends AbstractController
