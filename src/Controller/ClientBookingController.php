@@ -338,7 +338,7 @@ class ClientBookingController extends AbstractController
 
                 // ENVOI DE L'EMAIL AU CLIENT
                 $emailToClient = (new Email())
-                    ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                    ->from('rdvpro@brelect.fr')
                     ->to($client->getEmail())
                     ->subject(
                         'Confirmation de votre rendez-vous avec ' .
@@ -367,7 +367,7 @@ class ClientBookingController extends AbstractController
                 // ENVOI DE L'EMAIL AU PROFESSIONNEL
                 if ($professional->getBusinessEmail()) {
                     $emailToProfessional = (new Email())
-                        ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                        ->from('rdvpro@brelect.fr')
                         ->to($professional->getBusinessEmail())
                         ->subject(
                             'Nouveau rendez-vous: ' . $client->getFirstName() . ' ' . $client->getLastName() .
