@@ -334,7 +334,7 @@ class ClientBookingController extends AbstractController
 
                 // Load .env only once if Dotenv is not already handled by Symfony Flex or similar
                 $dotenv = new Dotenv();
-                $dotenv->loadEnv(dirname(__DIR__).'/../.env');
+                $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
                 // ENVOI DE L'EMAIL AU CLIENT
                 $emailToClient = (new Email())
