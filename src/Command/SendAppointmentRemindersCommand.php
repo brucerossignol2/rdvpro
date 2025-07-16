@@ -83,7 +83,7 @@ class SendAppointmentRemindersCommand extends Command
                         ->subject('Rappel de votre rendez-vous avec ' . $professional->getFirstName() . ' ' . $professional->getLastName())
                         ->html($emailHtml);
 
-                    // Add reply-to if professional email is available
+                    // Met répondre au professionnel si le mail existe
                     if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
                         $email->addReplyTo($professional->getBusinessEmail());
                     }

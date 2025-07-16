@@ -313,6 +313,10 @@ class AppointmentController extends AbstractController
                                 'client' => $client,
                                 'professional' => $professional,
                             ]));
+                        // Met répondre au professionnel si le mail existe
+                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+                            $email->addReplyTo($professional->getBusinessEmail());
+                        }
 
                         $mailer->send($email);
                         $this->addFlash('success', 'Rendez-vous créé et email de confirmation envoyé au client.');
@@ -495,7 +499,10 @@ class AppointmentController extends AbstractController
                                 'client' => $client,
                                 'professional' => $professional,
                             ]));
-
+                        // Met répondre au professionnel si le mail existe
+                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+                            $email->addReplyTo($professional->getBusinessEmail());
+                        }
                         $mailer->send($email);
                         $this->addFlash('success', 'Rendez-vous modifié et email de mise à jour envoyé au client.');
                     } else {
@@ -581,8 +588,7 @@ class AppointmentController extends AbstractController
         $inFirstSlot = ($bhStart1 && $bhEnd1 && $apptStartSec >= $bhStart1->getTimestamp() && $apptEndSec <= $bhEnd1->getTimestamp());
 
         // Check if appointment is fully contained within the second time slot
-        $inSecondSlot = ($bhStart2 && $bh2End2 && $apptStartSec >= $bhStart2->getTimestamp() && $apptEndSec <= $bhEnd2->getTimestamp());
-
+        $inSecondSlot = ($bhStart2 && $bhEnd2 && $apptStartSec >= $bhStart2->getTimestamp() && $apptEndSec <= $bhEnd2->getTimestamp());
         // If there's a second slot, the appointment must be fully within one of the two slots
         if ($bhStart2 && $bhEnd2) {
             return $inFirstSlot || $inSecondSlot;

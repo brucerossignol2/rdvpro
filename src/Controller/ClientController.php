@@ -130,9 +130,10 @@ class ClientController extends AbstractController
                             '<p>Cordialement,</p>' .
                             '<p>L\'équipe RDV Pro</p>'
                         );
-                    if ($professional->getEmail()) {
-                        $emailMessage->addReplyTo($professional->getEmail());
-                    }
+                        // Met répondre au professionnel si le mail existe
+                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+                            $email->addReplyTo($professional->getBusinessEmail());
+                        }
 
                     $mailer->send($email);
                     $this->addFlash('success', 'Client créé avec succès et un mot de passe temporaire a été envoyé par email.');

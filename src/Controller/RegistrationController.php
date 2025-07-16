@@ -86,9 +86,10 @@ class RegistrationController extends AbstractController
                     'signedUrl' => $signatureComponents->getSignedUrl(),
                     'user' => $user
                 ]));
-                if ($professional->getEmail()) {
-                    $emailMessage->addReplyTo($professional->getEmail());
-                }
+                        // Met répondre au professionnel si le mail existe
+                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+                            $email->addReplyTo($professional->getBusinessEmail());
+                        }
             try {
                 $mailer->send($email);
                 $this->addFlash('success', 'Votre compte a été créé ! Un email de confirmation vient de vous être envoyé.');

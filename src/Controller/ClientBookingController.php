@@ -356,9 +356,10 @@ class ClientBookingController extends AbstractController
                         ]
                     ));
 
-                if ($professional->getBusinessEmail()) {
-                    $emailToClient->replyTo($professional->getBusinessEmail());
-                }
+                        // Met répondre au professionnel si le mail existe
+                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+                            $email->addReplyTo($professional->getBusinessEmail());
+                        }
 
                 $this->mailer->send($emailToClient);
                 $this->addFlash('success', 'Votre rendez-vous a été réservé avec succès et un e-mail de confirmation vous a été envoyé !');
