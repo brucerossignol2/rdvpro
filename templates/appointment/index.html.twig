@@ -128,10 +128,10 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
                 <a href="#" id="editAppointmentButton" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Modifier</a>
                 <button type="button" id="deleteAppointmentButton" class="btn btn-danger"><i class="fas fa-trash-alt me-2"></i>Supprimer</button>
+                {# Le formulaire reste en place pour récupérer l'action et le token, mais il ne sera plus soumis directement #}
                 <form id="deleteAppointmentForm" method="post" style="display: none;">
                     <input type="hidden" name="_method" value="DELETE">
                     <input type="hidden" name="_token" id="deleteAppointmentToken">
-                    {# AJOUTÉ : Champ caché pour indiquer la redirection vers le calendrier #}
                     <input type="hidden" name="redirect_to_calendar" value="true">
                 </form>
             </div>
@@ -331,8 +331,52 @@
             // Handle delete button click in modal
             document.getElementById('deleteAppointmentButton').addEventListener('click', function() {
                 if (confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ? Cette action est irréversible.")) {
-                    // Submit the hidden delete form
-                    document.getElementById('deleteAppointmentForm').submit();
+                    // Get the form and its data
+                    var form = document.getElementById('deleteAppointmentForm');
+                    var appointmentId = form.action.split('/').pop(); // Extract ID from action URL
+                    var csrfToken = document.getElementById('deleteAppointmentToken').value;
+
+                    // Perform AJAX request instead of form submission
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded', // Use this for form-like submission
+                            'X-Requested-With': 'XMLHttpRequest', // Indicate an AJAX request
+                        },
+                        body: new URLSearchParams({
+                            '_method': 'DELETE', // Symfony expects this for DELETE method via POST
+                            '_token': csrfToken
+                        })
+                    })
+                    .then(response => {
+                        // Check if the response is JSON
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json();
+                        } else {
+                            // If not JSON, assume a redirect or other non-JSON response
+                            window.location.reload();
+                            throw new Error("Non-JSON response received.");
+                        }
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert(data.message); // Show success message
+                            var appointmentDetailModal = bootstrap.Modal.getInstance(document.getElementById('appointmentDetailModal'));
+                            if (appointmentDetailModal) {
+                                appointmentDetailModal.hide(); // Hide the modal
+                            }
+                            // Reload the page to refresh the calendar
+                            window.location.reload();
+                        } else {
+                            alert('Erreur: ' + data.message); // Show error message
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la suppression du rendez-vous:', error);
+                        alert('Une erreur est survenue lors de la suppression du rendez-vous.');
+                        window.location.reload();
+                    });
                 }
             });
         });

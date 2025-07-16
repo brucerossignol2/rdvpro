@@ -69,7 +69,7 @@
         <div class="appointment-details">
             <p><strong>Titre du rendez-vous :</strong> {{ appointment.title }}</p>
             <p><strong>Date et heure :</strong> {{ appointment.startTime|format_datetime('full', 'short', locale='fr') }}</p>
-            <p><strong>Durée estimée :</strong> {{ appointment.endTime|date('U') - appointment.startTime|date('U') }}/60 minutes</p>
+            <p><strong>Durée estimée :</strong> {{ (appointment.endTime|date('U') - appointment.startTime|date('U')) / 60 }} minutes</p>
             {% if appointment.services is not empty %}
                 <p><strong>Prestation(s) :</strong>
                     <ul>
@@ -90,9 +90,9 @@
         <p>Veuillez vous assurer d'être à l'heure. Si vous avez besoin de modifier ou d'annuler votre rendez-vous, veuillez nous contacter dès que possible.</p>
 
         <p>Vous pouvez consulter vos rendez-vous en ligne ici :</p>
-        <p>
-            <a href="{{ url('app_client_appointments_index') }}" class="button">Mes rendez-vous</a>
-        </p>
+            <p>
+                <a href="https://rdvpro.brelect.fr/my-appointments/" class="button">Mes rendez-vous</a>
+            </p>
 
         <p>Au plaisir de vous voir bientôt !</p>
 

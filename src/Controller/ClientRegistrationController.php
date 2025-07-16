@@ -128,7 +128,7 @@ class ClientRegistrationController extends AbstractController
                     ]));
                         // Met répondre au professionnel si le mail existe
                         if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
-                            $email->addReplyTo($professional->getBusinessEmail());
+                            $emailMessage->addReplyTo($professional->getBusinessEmail());
                         }
                 $customMailer->send($emailMessage); // Send using the custom mailer
                 $this->addFlash('success', 'Votre compte a été créé ! Un email de validation vient de vous être envoyé.');

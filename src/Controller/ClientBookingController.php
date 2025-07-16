@@ -358,7 +358,7 @@ class ClientBookingController extends AbstractController
 
                         // Met répondre au professionnel si le mail existe
                         if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
-                            $email->addReplyTo($professional->getBusinessEmail());
+                            $emailToClient->addReplyTo($professional->getBusinessEmail());
                         }
 
                 $this->mailer->send($emailToClient);
