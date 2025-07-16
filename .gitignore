@@ -21,6 +21,7 @@
 
 ###> Conseillé par Gemini ###
 .env
+.env-ovh
 /node_modules/
 .symfony/
 .idea/

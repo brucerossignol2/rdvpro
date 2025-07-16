@@ -8,18 +8,12 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use Symfony\Contracts\Service\Attribute\Required; // For Symfony 5.3+
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController; // To use renderView
-
-// For rendering Twig templates in a command, you might need to extend AbstractController
-// or inject the Twig environment. Extending AbstractController is simpler for quick setup.
-// If you encounter issues with renderView, you might need to inject Twig directly:
-// use Twig\Environment;
-// private Environment $twig;
-// public function __construct(..., Environment $twig) { $this->twig = $twig; parent::__construct(); }
-// $this->twig->render(...)
+use Symfony\Component\Mailer\Mailer; // Added
+use Symfony\Component\Mailer\Transport; // Added
+use Symfony\Component\Dotenv\Dotenv; // Added
+use Symfony\Contracts\Service\Attribute\Required;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[AsCommand(
     name: 'app:send-appointment-reminders',
@@ -28,16 +22,27 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController; // To use rend
 class SendAppointmentRemindersCommand extends Command
 {
     private AppointmentRepository $appointmentRepository;
-    private MailerInterface $mailer;
-    private \Twig\Environment $twig; // Inject Twig Environment for rendering templates
+    private \Twig\Environment $twig;
+    private Mailer $mailer; // Changed type hint from MailerInterface to Mailer
 
     // Use constructor injection for dependencies
-    public function __construct(AppointmentRepository $appointmentRepository, MailerInterface $mailer, \Twig\Environment $twig)
+    public function __construct(AppointmentRepository $appointmentRepository, \Twig\Environment $twig) // Removed MailerInterface
     {
         parent::__construct();
         $this->appointmentRepository = $appointmentRepository;
-        $this->mailer = $mailer;
         $this->twig = $twig;
+
+        // Initialize Mailer using Dotenv and Transport directly
+        $dotenv = new Dotenv();
+        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
+
+        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+
+        if (!$mailerDsn) {
+            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
+        }
+        $transport = Transport::fromDsn($mailerDsn);
+        $this->mailer = new Mailer($transport);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
