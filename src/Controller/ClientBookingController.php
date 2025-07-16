@@ -327,80 +327,86 @@ class ClientBookingController extends AbstractController
 
         // You might want a confirmation form here, but for simplicity, directly persist
         if ($request->isMethod('POST')) {
-            try {
-                $entityManager->persist($appointment);
-                $entityManager->flush();
+    try {
+        $entityManager->persist($appointment);
+        $entityManager->flush();
 
-                // Load .env only once if Dotenv is not already handled by Symfony Flex or similar
-                $dotenv = new Dotenv();
-                $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
+        // === ENVOI EMAIL AVEC LA MÊME MÉTHODE QUI FONCTIONNE ===
+        // Load .env file
+        $dotenv = new Dotenv();
+        $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
-                // ENVOI DE L'EMAIL AU CLIENT
-                $emailToClient = (new Email())
-                    ->from('rdvpro@brelect.fr')
-                    ->to($client->getEmail())
-                    ->subject(
-                        'Confirmation de votre rendez-vous avec ' .
-                        ($professional->getBusinessName() ?? ($professional->getFirstName() . ' ' . $professional->getLastName()))
-                    )
-                    ->html($this->renderView(
-                        'emails/client_appointment_confirmation.html.twig',
-                        [
-                            'appointment' => $appointment,
-                            'professional' => $professional,
-                            'client' => $client,
-                            'service' => $selectedService,
-                            'startTime' => $startTime,
-                            'endTime' => $endTime,
-                        ]
-                    ));
-
-                        // Met répondre au professionnel si le mail existe
-                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
-                            $emailToClient->addReplyTo($professional->getBusinessEmail());
-                        }
-
-                $this->mailer->send($emailToClient);
-                $this->addFlash('success', 'Votre rendez-vous a été réservé avec succès et un e-mail de confirmation vous a été envoyé !');
-
-                // ENVOI DE L'EMAIL AU PROFESSIONNEL
-                if ($professional->getBusinessEmail()) {
-                    $emailToProfessional = (new Email())
-                        ->from('rdvpro@brelect.fr')
-                        ->to($professional->getBusinessEmail())
-                        ->subject(
-                            'Nouveau rendez-vous: ' . $client->getFirstName() . ' ' . $client->getLastName() .
-                            ' pour ' . $selectedService->getName() .
-                            ' le ' . $startTime->format('d/m/Y à H:i')
-                        )
-                        ->html($this->renderView(
-                            'emails/professional_appointment_notification.html.twig',
-                            [
-                                'appointment' => $appointment,
-                                'professional' => $professional,
-                                'client' => $client,
-                                'service' => $selectedService,
-                                'startTime' => $startTime,
-                                'endTime' => $endTime,
-                            ]
-                        ));
-
-                    // définir l'email du client comme reply to pour que le pro puisse répondre directement
-                    if ($client->getEmail()) {
-                        $emailToProfessional->replyTo($client->getEmail());
-                    }
-
-                    $this->mailer->send($emailToProfessional);
-                    // Pas de addFlash pour le pro ici, car le client ne devrait pas voir cette info
-                }
-
-                return $this->redirectToRoute('app_client_appointments_index'); // Redirect to client's appointments list
-            } catch (\Exception $e) {
-                $this->addFlash('error', 'Une erreur est survenue lors de la réservation : ' . $e->getMessage());
-                // Log the error for debugging: $this->logger->error($e->getMessage());
-                return $this->redirectToRoute('app_client_booking_calendar', ['bookingLink' => $bookingLink, 'serviceId' => $serviceId]);
-            }
+        $mailerDsn = $_ENV['MAILER_DSN'] ?? null;
+        if (!$mailerDsn) {
+            throw new \RuntimeException('MAILER_DSN environment variable is not set in .env');
         }
+        
+        $transport = Transport::fromDsn($mailerDsn);
+        $mailer = new Mailer($transport);
+
+        // EMAIL AU CLIENT
+        $emailToClient = (new Email())
+            ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+            ->to($client->getEmail())
+            ->subject(
+                'Confirmation de votre rendez-vous avec ' .
+                ($professional->getBusinessName() ?? ($professional->getFirstName() . ' ' . $professional->getLastName()))
+            )
+            ->html($this->renderView(
+                'emails/client_appointment_confirmation.html.twig',
+                [
+                    'appointment' => $appointment,
+                    'professional' => $professional,
+                    'client' => $client,
+                    'service' => $selectedService,
+                    'startTime' => $startTime,
+                    'endTime' => $endTime,
+                ]
+            ));
+
+        if ($professional->getBusinessEmail()) {
+            $emailToClient->addReplyTo($professional->getBusinessEmail());
+        }
+
+        $mailer->send($emailToClient);
+        $this->addFlash('success', 'Votre rendez-vous a été réservé avec succès et un e-mail de confirmation vous a été envoyé !');
+
+        // EMAIL AU PROFESSIONNEL
+        if ($professional->getBusinessEmail()) {
+            $emailToProfessional = (new Email())
+                ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
+                ->to($professional->getBusinessEmail())
+                ->subject(
+                    'Nouveau rendez-vous: ' . $client->getFirstName() . ' ' . $client->getLastName() .
+                    ' pour ' . $selectedService->getName() .
+                    ' le ' . $startTime->format('d/m/Y à H:i')
+                )
+                ->html($this->renderView(
+                    'emails/professional_appointment_notification.html.twig',
+                    [
+                        'appointment' => $appointment,
+                        'professional' => $professional,
+                        'client' => $client,
+                        'service' => $selectedService,
+                        'startTime' => $startTime,
+                        'endTime' => $endTime,
+                    ]
+                ));
+
+            if ($client->getEmail()) {
+                $emailToProfessional->replyTo($client->getEmail());
+            }
+
+            $mailer->send($emailToProfessional);
+        }
+
+        return $this->redirectToRoute('app_client_appointments_index');
+        
+    } catch (\Exception $e) {
+        $this->addFlash('error', 'Une erreur est survenue lors de la réservation : ' . $e->getMessage());
+        return $this->redirectToRoute('app_client_booking_calendar', ['bookingLink' => $bookingLink, 'serviceId' => $serviceId]);
+    }
+}
 
         // For GET request, display a confirmation page (optional, but good UX)
         return $this->render('client_booking/confirm_booking.html.twig', [

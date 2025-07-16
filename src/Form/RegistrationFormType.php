@@ -60,12 +60,20 @@ class RegistrationFormType extends AbstractType
                     new Length(['min' => 2, 'max' => 100]),
                 ],
             ])
+
             ->add('businessAddress', TextareaType::class, [
-                'attr' => ['class' => 'form-control', 'rows' => 3],
-                'label' => 'Adresse de votre entreprise',
+                'attr' => ['class' => 'form-control', 'rows' => 3], // Add rows for textarea
+                'label' => 'Adresse de l\'entreprise',
                 'constraints' => [
-                    new NotBlank(['message' => 'Veuillez entrer l\'adresse de votre entreprise.']),
-                    new Length(['min' => 10, 'max' => 255]),
+                    new NotBlank([
+                        'message' => 'Veuillez saisir l\'adresse complète de votre entreprise.',
+                    ]),
+                    new Length([
+                        'min' => 10,
+                        'minMessage' => 'Votre adresse semble trop courte. Elle doit être de {{ limit }} caractères minimum et contenir le numéro, le nom de la rue, le code postal et la ville.', // <-- C'est ici !
+                        'max' => 500,
+                        'maxMessage' => 'Votre adresse doit contenir au maximum {{ limit }} caractères.',
+                    ]),
                 ],
             ])
             ->add('businessPhone', TelType::class, [
