@@ -7,60 +7,16 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>MON COMPTE</span>
-                </h6>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_edit' %}active{% endif %}" href="{{ path('app_profile_edit') }}">
-                            <i class="fas fa-user-cog"></i> Mes Informations
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
-                            <i class="fas fa-clock"></i> Mes Horaires
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
-                            <i class="fas fa-briefcase"></i> Mes Services
-                        </a>
-                    </li>
-                       <li class="nav-item">
-                        <a class="nav-link {% if app.request.attributes.get('_route') == 'app_profile_change_password' %}active{% endif %}" href="{{ path('app_profile_change_password') }}">
-                            <i class="fas fa-key"></i> Mot de passe
-                        </a>
-                    </li>
-                </ul>
-                
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>ACCÈS RAPIDE</span>
-                </h6>
-                <ul class="nav flex-column mb-2">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_index') }}">
-                            <i class="fas fa-users"></i> Liste des clients
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_new') }}">
-                            <i class="fas fa-user-plus"></i> Nouveau client
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        {# La colonne de navigation latérale a été supprimée #}
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <main class="col-12 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
                     <i class="fas fa-calendar-plus text-primary"></i>
                     Créer un nouveau Rendez-vous ou une Indisponibilité
                 </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="{{ path('app_appointment_index') }}" class="btn btn-outline-secondary">
+                   <a href="{{ path('app_appointment_index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Retour au calendrier
                     </a>
                 </div>
@@ -236,8 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Mettre à jour le placeholder pour toujours refléter l'état actuel (même si la valeur est déjà présente)
-        titleInput.placeholder = targetText; 
-        
+        titleInput.placeholder = targetText;
     }
 
     function toggleClientAndServicesFields() {

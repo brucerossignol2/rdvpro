@@ -77,6 +77,23 @@
                                 <strong><i class="fas fa-calendar-day me-2"></i>Date :</strong> {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}<br>
                                 <strong><i class="fas fa-clock me-2"></i>Heure :</strong> {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
                             </p>
+
+                            {# Affichage du statut avec couleur #}
+                            <p class="card-text">
+                                <strong><i class="fas fa-info-circle me-2"></i>Statut :</strong>
+                                {% if appointment.isIsPersonalUnavailability %}
+                                    <span class="badge bg-info"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span> {# Bleu pour indisponibilité #}
+                                {% else %}
+                                    {% if appointment.status == 'confirmed' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Confirmé</span> {# Vert pour confirmé #}
+                                    {% elseif appointment.status == 'cancelled' %}
+                                        <span class="badge bg-secondary"><i class="fas fa-times-circle"></i> Annulé</span> {# Gris pour annulé #}
+                                    {% else %} {# status == 'pending' #}
+                                        <span class="badge bg-warning"><i class="fas fa-hourglass-half"></i> En attente</span> {# Jaune/Orange pour en attente #}
+                                    {% endif %}
+                                {% endif %}
+                            </p>
+
                             {% if appointment.services is not empty %}
                                 <p class="card-text">
                                     <strong><i class="fas fa-briefcase me-2"></i>Prestations :</strong>

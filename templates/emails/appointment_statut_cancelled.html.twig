@@ -1,0 +1,38 @@
+{# templates/emails/appointment_statut_cancelled.html.twig #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Annulation de votre rendez-vous - RDV Pro</title>
+</head>
+<body>
+    <h1>Bonjour {{ client.firstName }},</h1>
+    <p>Nous avons annulé votre rendez-vous :</p>
+    <ul>
+        <li><strong>Titre :</strong> {{ appointment.title }}</li>
+        <li><strong>Date :</strong> {{ appointment.startTime|date('d/m/Y à H:i', 'Europe/Paris') }}</li>
+        <li><strong>Avec :</strong> 
+            {% if professional.businessName %}
+                {{ professional.businessName }}
+            {% else %}
+                {{ professional.firstName }} {{ professional.lastName }}
+            {% endif %}
+        </li>
+        {% if appointment.services is not empty %}
+            <li><strong>Prestations :</strong>
+                <ul>
+                    {% for service in appointment.services %}
+                        <li>{{ service.name }} ({{ service.duration }} min)</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endif %}
+        {% if appointment.description %}
+            <li><strong>Description :</strong> {{ appointment.description }}</li>
+        {% endif %}
+    </ul>
+    <p>En cas de désaccord, merci bien vouloir nous contacter.</p>
+    <p>Cordialement,</p>
+    <p>L'équipe RDV Pro</p>
+</body>
+</html>

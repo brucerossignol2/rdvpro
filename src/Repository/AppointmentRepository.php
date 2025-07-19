@@ -96,7 +96,7 @@ class AppointmentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Finds appointments that are scheduled to start within a specific time window
+     * Rappel de rendez-vous Confirmé 24 heurs avant - Finds appointments that are scheduled to start within a specific time window
      * (e.g., exactly 24 hours from now) for sending reminders.
      *
      * @param DateTimeImmutable $startWindow The start of the time window (e.g., now + 23 hours).
@@ -108,13 +108,35 @@ class AppointmentRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('a')
             ->where('a.isPersonalUnavailability = :isPersonal') // Only consider client appointments
             ->andWhere('a.startTime >= :startWindow')
-            ->andWhere('a.startTime < :endWindow') // Use < to ensure it's within the next 24 hours (exclusive of endWindow)
+            ->andWhere('a.startTime < :endWindow')
             ->andWhere('a.client IS NOT NULL') // Ensure a client is associated
+            ->andWhere('a.status = :status') // Ajout de la condition sur le statut
             ->setParameter('isPersonal', false)
             ->setParameter('startWindow', $startWindow)
             ->setParameter('endWindow', $endWindow)
+            ->setParameter('status', 'confirmed') // Définir le statut à "confirmed"
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Finds all appointments and unavailabilities for a given professional within a date range.
+     *
+     * @param User $professional
+     * @param \DateTimeInterface $start
+     * @param \DateTimeInterface $end
+     * @return Appointment[] Returns an array of Appointment objects
+     */
+    public function findAppointmentsInDateRange(User $professional, \DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.professional = :professional')
+            ->andWhere('a.startTime < :end AND a.endTime > :start')
+            ->setParameter('professional', $professional)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->orderBy('a.startTime', 'ASC')
             ->getQuery()
             ->getResult();
     }
 }
-

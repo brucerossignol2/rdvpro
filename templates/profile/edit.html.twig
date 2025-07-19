@@ -6,7 +6,6 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
@@ -27,7 +26,7 @@
                         <a class="nav-link {% if app.request.attributes.get('_route') == 'app_business_hours_index' %}active{% endif %}" href="{{ path('app_business_hours_index') }}">
                             <i class="fas fa-clock"></i> Mes Horaires
                         </a>
-                    </li>
+                        </li>
                     <li class="nav-item">
                         <a class="nav-link {% if app.request.attributes.get('_route') == 'app_service_index' %}active{% endif %}" href="{{ path('app_service_index') }}">
                             <i class="fas fa-briefcase"></i> Mes Services
@@ -58,7 +57,6 @@
             </div>
         </nav>
 
-        <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
@@ -72,7 +70,6 @@
                 </div>
             </div>
 
-            <!-- Messages flash -->
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
@@ -83,7 +80,6 @@
                 {% endfor %}
             {% endfor %}
 
-            <!-- Formulaire -->
             <div class="row">
                 <div class="col-lg-10">
                     <div class="card shadow-sm">
@@ -139,6 +135,12 @@
                                         </div>
                                         <div class="mb-3">
                                             {{ form_label(profileForm.bookingLink) }}
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="fullBookingLink" value="{{ app.request.schemeAndHttpHost }}/{{ profileForm.bookingLink.vars.value }}" readonly>
+                                                <button class="btn btn-outline-secondary" type="button" id="copyBookingLinkButton">
+                                                    <i class="fas fa-copy"></i> Copier
+                                                </button>
+                                            </div>
                                             {{ form_widget(profileForm.bookingLink) }}
                                             {{ form_errors(profileForm.bookingLink) }}
                                             <small class="form-text text-muted">{{ form_help(profileForm.bookingLink) }}</small>
@@ -162,5 +164,26 @@
     </div>
 </div>
 
-{# Removed duplicated sidebar styles from here #}
+{# Script pour la fonctionnalité de copie #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const copyButton = document.getElementById('copyBookingLinkButton');
+    const fullBookingLinkInput = document.getElementById('fullBookingLink');
+
+    if (copyButton && fullBookingLinkInput) {
+        copyButton.addEventListener('click', function() {
+            fullBookingLinkInput.select();
+            fullBookingLinkInput.setSelectionRange(0, 99999); /* For mobile devices */
+            document.execCommand('copy');
+            
+            // Feedback visuel (facultatif)
+            const originalButtonText = copyButton.innerHTML;
+            copyButton.innerHTML = '<i class="fas fa-check"></i> Copié !';
+            setTimeout(() => {
+                copyButton.innerHTML = originalButtonText;
+            }, 2000);
+        });
+    }
+});
+</script>
 {% endblock %}

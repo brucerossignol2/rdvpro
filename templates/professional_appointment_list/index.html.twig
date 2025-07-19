@@ -4,7 +4,8 @@
 {% block title %}Mes Rendez-vous Futurs - RDV Pro{% endblock %}
 
 {% block body %}
-<div class="container my-5">
+
+<div class="container my-2">
     <h1 class="h2 mb-4 text-center text-primary">
         <i class="fas fa-calendar-alt me-2"></i> Mes Rendez-vous Futurs
     </h1>
@@ -50,6 +51,22 @@
                                 <strong><i class="fas fa-clock me-2"></i>Heure :</strong> {{ appointment.startTime|date('H:i', 'Europe/Paris') }} - {{ appointment.endTime|date('H:i', 'Europe/Paris') }}
                             </p>
                             
+                            {# Affichage du statut avec couleur #}
+                            <p class="card-text">
+                                <strong><i class="fas fa-info-circle me-2"></i>Statut :</strong>
+                                {% if appointment.isIsPersonalUnavailability %}
+                                    <span class="badge bg-info"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span> {# Bleu pour indisponibilité #}
+                                {% else %}
+                                    {% if appointment.status == 'confirmed' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Confirmé</span> {# Vert pour confirmé #}
+                                    {% elseif appointment.status == 'cancelled' %}
+                                        <span class="badge bg-secondary"><i class="fas fa-times-circle"></i> Annulé</span> {# Gris pour annulé #}
+                                    {% else %} {# status == 'pending' #}
+                                        <span class="badge bg-warning"><i class="fas fa-hourglass-half"></i> En attente</span> {# Jaune/Orange pour en attente #}
+                                    {% endif %}
+                                {% endif %}
+                            </p>
+
                             {% if not appointment.isPersonalUnavailability() %}
                                 {% if appointment.client %}
                                     <hr>
@@ -73,8 +90,7 @@
                                     <ul>
                                         {% for service in appointment.services %}
                                             <li>
-                                                {{ service.name }} ({{ service.duration }} min)
-                                                <br>
+                                                {{ service.name }} ({{ service.duration }} min)<br>
                                                 <small class="text-muted">
                                                     <i class="fas fa-handshake me-1"></i> 
                                                     {% if service.appointmentType == 'home_service' %}
@@ -103,17 +119,54 @@
                                 <p class="card-text"><strong><i class="fas fa-info-circle me-2"></i>Description :</strong> {{ appointment.description }}</p>
                             {% endif %}
 
-                            <div class="d-flex justify-content-end mt-3">
-                                <a href="{{ path('app_appointment_edit', {'id': appointment.id}) }}" class="btn btn-sm btn-outline-primary me-2">
-                                    <i class="fas fa-edit me-1"></i> Modifier
-                                </a>
-                                <form method="post" action="{{ path('app_appointment_delete', {'id': appointment.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');">
-                                    <input type="hidden" name="_token" value="{{ deleteToken }}">
-                                    <input type="hidden" name="_method" value="DELETE">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash-alt me-1"></i> Supprimer
-                                    </button>
-                                </form>
+                            <div class="d-flex justify-content-between flex-column mt-3">
+                                {# Boutons de changement de statut #}
+                                <div class="d-flex flex-wrap mb-2"> {# Nouvelle div pour les boutons de statut, alignés à gauche #}
+                                    {% if not appointment.isIsPersonalUnavailability %}
+                                        {% if appointment.status != 'confirmed' %}
+                                            <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'confirmed'}) }}" method="post" class="status-update-form me-2 mb-2">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('update_status') }}">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check-circle me-1"></i> Confirmer
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        {% if appointment.status != 'cancelled' %}
+                                            <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'cancelled'}) }}" method="post" class="status-update-form me-2 mb-2">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('update_status') }}">
+                                                <button type="submit" class="btn btn-sm btn-secondary">
+                                                    <i class="fas fa-times-circle me-1"></i> Annuler
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        {% if appointment.status != 'pending' and appointment.status != 'confirmed' %}
+                                            <form action="{{ path('app_appointment_update_status', {'id': appointment.id, 'status': 'pending'}) }}" method="post" class="status-update-form me-2 mb-2">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('update_status') }}">
+                                                <button type="submit" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-hourglass-half me-1"></i> En attente
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+
+                                <hr class="my-2"> {# Ligne horizontale de séparation #}
+
+                                {# Boutons Modifier et Supprimer #}
+                                <div class="d-flex justify-content-end flex-wrap mt-2"> {# Nouvelle div pour les boutons Modifier/Supprimer, alignés à droite #}
+                                    <a href="{{ path('app_appointment_edit', {'id': appointment.id}) }}" class="btn btn-sm btn-outline-primary me-2 mb-2">
+                                        <i class="fas fa-edit me-1"></i> Modifier
+                                    </a>
+                                    <form method="post" action="{{ path('app_appointment_delete', {'id': appointment.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="mb-2">
+                                        <input type="hidden" name="_token" value="{{ deleteToken }}">
+                                        <input type="hidden" name="_method" value="DELETE">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt me-1"></i> Supprimer
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -121,5 +174,103 @@
             {% endfor %}
         </div>
     {% endif %}
+
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }} {# Conservez les scripts parents si vous en avez #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sélectionnez tous les formulaires avec la classe 'status-update-form'
+        document.querySelectorAll('.status-update-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Empêche la soumission par défaut du formulaire (et donc la navigation)
+
+                const url = form.action;
+                const formData = new FormData(form); // Récupère toutes les données du formulaire
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' // Indique que c'est une requête AJAX
+                    }
+                })
+                .then(response => {
+                    // Vérifie si la réponse est JSON, sinon, gère comme une erreur ou recharge la page
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        // Si ce n'est pas du JSON (ex: redirection inattendue), recharge la page
+                        window.location.reload();
+                        throw new Error("Réponse non-JSON reçue, rechargement de la page.");
+                    }
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Recharger la page pour afficher le statut mis à jour et le message flash
+                        window.location.reload();
+                    } else {
+                        // Gérer les erreurs renvoyées par le contrôleur (si le statut est 'error')
+                        // Affiche le message d'erreur du serveur ou un message générique
+                        alert(data.message || 'Une erreur est survenue lors de la mise à jour du statut.');
+                        window.location.reload(); // Recharger même en cas d'erreur logique pour rafraîchir les flash messages
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la requête AJAX:', error);
+                    // Affiche un message d'erreur plus détaillé pour les erreurs de communication
+                    alert('Une erreur de communication est survenue: ' + error.message);
+                    window.location.reload(); // Recharger en cas d'erreur de réseau ou de traitement inattendu
+                });
+            });
+        });
+
+        // Gérer la soumission du formulaire de suppression via AJAX également
+        document.querySelectorAll('form[action*="/delete"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Empêche la soumission par défaut
+
+                if (confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ? Cette action est irréversible.')) {
+                    const url = form.action;
+                    const formData = new FormData(form);
+
+                    fetch(url, {
+                        method: 'POST', // Symfony attend POST avec _method=DELETE
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json();
+                        } else {
+                            window.location.reload();
+                            throw new Error("Réponse non-JSON reçue pour la suppression, rechargement de la page.");
+                        }
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Le message flash est déjà géré par le contrôleur
+                            window.location.reload(); // Recharger la page pour refléter la suppression et afficher le flash message
+                        } else {
+                            alert('Erreur lors de la suppression: ' + (data.message || 'Une erreur inconnue est survenue.'));
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur AJAX lors de la suppression:', error);
+                        alert('Une erreur de communication est survenue lors de la suppression: ' + error.message);
+                        window.location.reload();
+                    });
+                }
+            });
+        });
+    });
+</script>
+
 {% endblock %}

@@ -6,7 +6,9 @@ use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Email;
+use App\Service\AppointmentMailerService;
 use App\Entity\Appointment;
+use App\Entity\User;
 use App\Entity\Client;
 use App\Form\AppointmentType;
 use App\Repository\AppointmentRepository;
@@ -56,25 +58,53 @@ class AppointmentController extends AbstractController
 
         $events = [];
         foreach ($appointments as $appointment) {
-            $backgroundColor = $appointment->isIsPersonalUnavailability() ? '#dc3545' : '#007bff'; // Red for unavailability, blue for appointment
+            $backgroundColor = '#007bff'; // Default primary blue for appointments (will be overridden by status)
             $borderColor = $backgroundColor;
             $textColor = '#ffffff';
+
+            if ($appointment->isIsPersonalUnavailability()) {
+                // Indisponibilité : Bleu (primary)
+                $backgroundColor = '#0dcaf0'; // Primary Blue
+                $borderColor = '#0dcaf0';
+            } else {
+                // Pour les rendez-vous client, la couleur sera déterminée par le statut en JavaScript
+                // Nous passons simplement le statut dans les extendedProps
+                switch ($appointment->getStatus()) {
+                    case 'confirmed':
+                        $backgroundColor = '#28a745'; // Success Green
+                        $borderColor = '#28a745';
+                        break;
+                    case 'cancelled':
+                        $backgroundColor = '#6c757d'; // Secondary Gray
+                        $borderColor = '#6c757d';
+                        break;
+                    case 'pending':
+                        $backgroundColor = '#ffc107'; // Warning Yellow/Orange
+                        $borderColor = '#ffc107';
+                        break;
+                    default:
+                        $backgroundColor = '#007bff'; // Default to primary blue if status is unknown
+                        $borderColor = '#007bff';
+                        break;
+                }
+            }
 
             $events[] = [
                 'id' => $appointment->getId(),
                 'title' => $appointment->getTitle(),
                 'start' => $appointment->getStartTime()->format('Y-m-d\TH:i:s'),
                 'end' => $appointment->getEndTime()->format('Y-m-d\TH:i:s'),
-                'backgroundColor' => $backgroundColor,
+                'backgroundColor' => $backgroundColor, // Set color directly based on type/status
                 'borderColor' => $borderColor,
                 'textColor' => $textColor,
                 'extendedProps' => [
                     'description' => $appointment->getDescription(),
                     'isPersonalUnavailability' => $appointment->isIsPersonalUnavailability(),
+                    'status' => $appointment->getStatus(), // Pass the status to the frontend
                     'clientId' => $appointment->getClient() ? $appointment->getClient()->getId() : null,
                     'clientName' => $appointment->getClient() ? $appointment->getClient()->getFullName() : null,
                     'services' => array_map(fn($service) => ['id' => $service->getId(), 'name' => $service->getName(), 'duration' => $service->getDuration()], $appointment->getServices()->toArray()),
-                    'deleteToken' => $this->csrfTokenManager->getToken('delete' . $appointment->getId())->getValue(), // Generate and pass delete token
+                    'deleteToken' => $this->csrfTokenManager->getToken('delete' . $appointment->getId())->getValue(),
                 ],
             ];
         }
@@ -90,19 +120,66 @@ class AppointmentController extends AbstractController
         $formattedBusinessHours = [];
         $foundOpenHours = false; // Flag to check if any open business hours were found
 
-        // Logique pour déterminer si affiche la semaine suivante en fin de semaine travaillée
+        // --- DÉBUT DE LA LOGIQUE MISE À JOUR POUR initialDate ---
         $now = new DateTime('now', new DateTimeZone('Europe/Paris'));
-        // Calcul du lundi de la semaine actuelle (plus robuste que 'this monday')
-        // Définir la date au lundi de la semaine ISO en cours
-        $currentWeekInitialDate = (clone $now)->setISODate(
-            (int)$now->format('o'), // Année ISO
-            (int)$now->format('W'), // Numéro de semaine ISO
-            1                       // Jour de la semaine (1 pour Lundi)
-        )->setTime(0, 0, 0); // S'assurer que l'heure est bien minuit
-        // Calcul du lundi de la semaine prochaine
-        $nextWeekInitialDate = (clone $currentWeekInitialDate)->modify('+1 week');
+        $initialDate = $now->format('Y-m-d'); // Par défaut, aujourd'hui
 
-        $latestClosingTimeOfWeek = null;
+        // Obtenir les heures d'ouverture pour le jour actuel
+        $currentDayOfWeek = (int)$now->format('N'); // 1 (lundi) à 7 (dimanche)
+        $currentDayBusinessHours = $businessHoursRepository->findOneBy(['professional' => $professional, 'dayOfWeek' => $currentDayOfWeek]);
+
+        $shouldAdvanceToNextDay = false;
+
+        if ($currentDayBusinessHours && $currentDayBusinessHours->isIsOpen()) {
+            $latestClosingTimeToday = null;
+
+            // Calculer l'heure de fermeture la plus tardive pour aujourd'hui
+            if ($currentDayBusinessHours->getEndTime()) {
+                $latestClosingTimeToday = (clone $now)->setTime(
+                    (int)$currentDayBusinessHours->getEndTime()->format('H'),
+                    (int)$currentDayBusinessHours->getEndTime()->format('i'),
+                    (int)$currentDayBusinessHours->getEndTime()->format('s')
+                );
+            }
+            if ($currentDayBusinessHours->getEndTime2()) {
+                $closingTime2 = (clone $now)->setTime(
+                    (int)$currentDayBusinessHours->getEndTime2()->format('H'),
+                    (int)$currentDayBusinessHours->getEndTime2()->format('i'),
+                    (int)$currentDayBusinessHours->getEndTime2()->format('s')
+                );
+                if ($latestClosingTimeToday === null || $closingTime2 > $latestClosingTimeToday) {
+                    $latestClosingTimeToday = $closingTime2;
+                }
+            }
+
+            // Si l'heure actuelle dépasse le seuil (ex: 1 heure avant la fermeture), on avance au jour suivant
+            if ($latestClosingTimeToday && $now > (clone $latestClosingTimeToday)->sub(new DateInterval('PT1H'))) {
+                $shouldAdvanceToNextDay = true;
+            }
+        } else {
+            // Si aujourd'hui n'est pas un jour ouvré, on doit avancer au jour suivant
+            $shouldAdvanceToNextDay = true;
+        }
+
+        if ($shouldAdvanceToNextDay) {
+            // Trouver le prochain jour ouvré à partir de demain
+            for ($i = 1; $i <= 7; $i++) { // Vérifier les 7 prochains jours
+                $nextDay = (clone $now)->modify('+' . $i . ' days');
+                $nextDayOfWeek = (int)$nextDay->format('N');
+                $nextDayBusinessHours = $businessHoursRepository->findOneBy(['professional' => $professional, 'dayOfWeek' => $nextDayOfWeek]);
+
+                if ($nextDayBusinessHours && $nextDayBusinessHours->isIsOpen()) {
+                    $initialDate = $nextDay->format('Y-m-d');
+                    break; // Le prochain jour ouvré est trouvé
+                }
+                // Si aucun jour ouvré n'est trouvé dans les 7 prochains jours, initialDate restera la date d'aujourd'hui
+                // (celle qui était par défaut au début de la logique)
+                if ($i === 7) {
+                    $initialDate = $now->format('Y-m-d');
+                }
+            }
+        }
+        // --- FIN DE LA LOGIQUE MISE À JOUR POUR initialDate ---
 
         foreach ($businessHoursEntities as $bh) {
             if ($bh->isIsOpen()) {
@@ -126,14 +203,6 @@ class AppointmentController extends AbstractController
 
                     $minTimeInMinutes = min($minTimeInMinutes, $startMinutes);
                     $maxTimeInMinutes = max($maxTimeInMinutes, $endMinutes);
-
-                    // Check for latest closing time of the week
-                    $closingTime = (clone $currentWeekInitialDate)->modify('+' . ($phpDayOfWeek - 1) . ' days');
-                    $closingTime->setTime($bh->getEndTime()->format('H'), $bh->getEndTime()->format('i'), $bh->getEndTime()->format('s'));
-
-                    if ($latestClosingTimeOfWeek === null || $closingTime > $latestClosingTimeOfWeek) {
-                        $latestClosingTimeOfWeek = $closingTime;
-                    }
                 }
                 // Second time slot
                 if ($bh->getStartTime2() && $bh->getEndTime2()) {
@@ -147,17 +216,10 @@ class AppointmentController extends AbstractController
 
                     $minTimeInMinutes = min($minTimeInMinutes, $startMinutes);
                     $maxTimeInMinutes = max($maxTimeInMinutes, $endMinutes);
-
-                    // Check for latest closing time of the week for the second slot
-                    $closingTime2 = (clone $currentWeekInitialDate)->modify('+' . ($phpDayOfWeek - 1) . ' days');
-                    $closingTime2->setTime($bh->getEndTime2()->format('H'), $bh->getEndTime2()->format('i'), $bh->getEndTime2()->format('s'));
-
-                    if ($latestClosingTimeOfWeek === null || $closingTime2 > $latestClosingTimeOfWeek) {
-                        $latestClosingTimeOfWeek = $closingTime2;
-                    }
                 }
             }
         }
+
 
         // If no open business hours were found, set a default visible range for the calendar
         if (!$foundOpenHours) {
@@ -177,20 +239,6 @@ class AppointmentController extends AbstractController
         // Convert back to HH:mm:ss format for FullCalendar's slotMinTime/slotMaxTime
         $formattedMinTime = sprintf('%02d:%02d:00', floor($minTimeInMinutes / 60), $minTimeInMinutes % 60);
         $formattedMaxTime = sprintf('%02d:%02d:00', floor($maxTimeInMinutes / 60), $maxTimeInMinutes % 60);
-
-        $initialDate = $currentWeekInitialDate->format('Y-m-d'); // Default to current week
-
-        // If a latest closing time was found, calculate the threshold
-        if ($latestClosingTimeOfWeek) {
-            // Calculate 1 hour before the latest closing time
-            $thresholdTime = (clone $latestClosingTimeOfWeek)->sub(new DateInterval('PT1H'));
-
-            // If current time is past the threshold, display next week
-            if ($now > $thresholdTime) {
-                $initialDate = $nextWeekInitialDate->format('Y-m-d');
-            }
-        }
-        // If no business hours are defined for the week, it will default to the current week.
 
 
         // Generate a generic CSRF token for AJAX updates (drag/drop/resize)
@@ -239,7 +287,7 @@ class AppointmentController extends AbstractController
             $client = $clientRepository->find($clientId);
             if ($client && $client->getProfessional() === $professional) {
                 $appointment->setClient($client);
-                $this->addFlash('success', 'Le client "' . $client->getFullName() . '" a été créé et sélectionné.');
+               // $this->addFlash('success', 'Le client "' . $client->getFullName() . '" a été créé et sélectionné.');
             } else {
                 $this->addFlash('error', 'Le client spécifié n\'existe pas ou ne vous appartient pas.');
             }
@@ -279,6 +327,8 @@ class AppointmentController extends AbstractController
                         'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
                     ]);
                 }
+                // Définir le statut sur 'confirmed' si ce n'est PAS une indisponibilité personnelle
+                $appointment->setStatus('confirmed'); // AJOUTEZ CETTE LIGNE
             }
             $entityManager->persist($appointment);
             $entityManager->flush();
@@ -364,53 +414,55 @@ class AppointmentController extends AbstractController
      * Updates the status of an appointment.
      */
     #[Route('/{id}/status/{status}', name: 'app_appointment_update_status', methods: ['POST'])]
-    public function updateStatus(Request $request, Appointment $appointment, string $status, EntityManagerInterface $entityManager): Response
-    {
-        /** @var \App\Entity\User $professional */
-        $professional = $this->getUser();
+        public function updateStatus(
+            Request $request,
+            Appointment $appointment,
+            string $status,
+            EntityManagerInterface $entityManager,
+            AppointmentMailerService $appointmentMailerService // Injection du service
+        ): JsonResponse {
+            // Vérification du CSRF
+            if (!$this->isCsrfTokenValid('update_status', $request->request->get('_token'))) {
+                return new JsonResponse(['status' => 'error', 'message' => 'Jeton CSRF invalide.'], 400);
+            }
 
-        // Security check: ensure the professional can only update their own appointments
-        if ($appointment->getProfessional() !== $professional) {
-            $this->addFlash('error', 'Vous n\'avez pas les droits pour modifier le statut de ce rendez-vous.');
-            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+            // Optionnel : Valider les statuts permis
+            $allowedStatuses = ['pending', 'confirmed', 'cancelled'];
+            if (!in_array($status, $allowedStatuses)) {
+                return new JsonResponse(['status' => 'error', 'message' => 'Statut invalide.'], 400);
+            }
+
+            // Mise à jour et sauvegarde
+            $appointment->setStatus($status);
+            $entityManager->flush();
+
+            // Récupérer l'utilisateur actuellement authentifié (le professionnel)
+            $professional = $this->getUser();
+
+            // Vérifier que $professional est bien une instance de votre entité User
+            // et n'est pas une indisponibilité personnelle avant d'envoyer l'email.
+            // C'est important car $this->getUser() peut retourner null ou un autre type si non authentifié.
+            if ($professional instanceof User && !$appointment->isIsPersonalUnavailability()) {
+                try {
+                    $appointmentMailerService->sendStatusChangeEmail($appointment, $status, $professional);
+                    $this->addFlash('success', 'Le statut du rendez-vous a été mis à jour et un e-mail a été envoyé au client.');
+                } catch (\Exception $e) {
+                    // Le log de l'erreur est crucial ici pour le débogage si l'envoi de l'e-mail échoue pour d'autres raisons
+                    error_log('Erreur lors de l\'envoi de l\'e-mail: ' . $e->getMessage());
+                    $this->addFlash('error', 'Le statut du rendez-vous a été mis à jour, mais l\'e-mail n\'a pas pu être envoyé : ' . $e->getMessage());
+                }
+            } else {
+                // Optionnel : Ajouter un flash message si l'e-mail n'est pas envoyé parce que le professionnel n'est pas trouvé
+                if (!$professional instanceof User) {
+                    $this->addFlash('warning', 'Le statut du rendez-vous a été mis à jour, mais l\'e-mail n\'a pas pu être envoyé car le professionnel n\'a pas été identifié.');
+                } else { // Si c'est une indisponibilité personnelle
+                    $this->addFlash('success', 'Le statut du rendez-vous a été mis à jour (indisponibilité personnelle).');
+                }
+            }
+            
+            return new JsonResponse(['status' => 'success']);
         }
-
-        // Validate the incoming status value to prevent invalid data
-        $allowedStatuses = ['pending', 'confirmed', 'cancelled'];
-        if (!in_array($status, $allowedStatuses)) {
-            $this->addFlash('error', 'Statut invalide fourni.');
-            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
-        }
-
-        // Validate CSRF token
-        $tokenName = 'update_status' . $appointment->getId() . $status;
-        if (!$this->isCsrfTokenValid($tokenName, $request->request->get('_token'))) {
-            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
-            return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
-        }
-
-        // Update the status
-        $appointment->setStatus($status);
-        $entityManager->flush();
-
-        // Add a flash message based on the new status
-        switch ($status) {
-            case 'confirmed':
-                $this->addFlash('success', 'Le rendez-vous a été confirmé.');
-                break;
-            case 'cancelled':
-                $this->addFlash('warning', 'Le rendez-vous a été annulé.');
-                break;
-            case 'pending':
-                $this->addFlash('info', 'Le rendez-vous a été remis en attente.');
-                break;
-        }
-
-        // You might want to send an email notification here if the status changes
-        // Example: if ($status === 'confirmed' || $status === 'cancelled') { sendEmailNotification($appointment); }
-
-        return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
-    }
+    
 
 
     /**
@@ -529,30 +581,44 @@ class AppointmentController extends AbstractController
     /**
      * Handles AJAX requests to delete an appointment.
      */
-    #[Route('/{id}', name: 'app_appointment_delete', methods: ['POST'])]
-    public function delete(Request $request, Appointment $appointment, EntityManagerInterface $entityManager): Response
-    {
-        /** @var \App\Entity\User $professional */
-        $professional = $this->getUser();
+#[Route('/{id}', name: 'app_appointment_delete', methods: ['POST'])]
+public function delete(Request $request, Appointment $appointment, EntityManagerInterface $entityManager): Response
+{
+    /** @var \App\Entity\User $professional */
+    $professional = $this->getUser();
 
-        // Security check: ensure the professional can only delete their own appointments
-        if ($appointment->getProfessional() !== $professional) {
-            // If the user tries to delete an appointment they don't own, return a 403 Forbidden response
+    // Vérifie si le professionnel est autorisé à supprimer ce rendez-vous
+    if ($appointment->getProfessional() !== $professional) {
+        if ($request->isXmlHttpRequest()) {
             return new JsonResponse(['status' => 'error', 'message' => 'Accès non autorisé.'], Response::HTTP_FORBIDDEN);
         }
 
-        $csrfToken = $request->request->get('_token');
-        if ($this->isCsrfTokenValid('delete' . $appointment->getId(), $csrfToken)) {
-            $entityManager->remove($appointment);
-            $entityManager->flush();
+        $this->addFlash('error', 'Accès non autorisé.');
+        return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+    }
 
-            $this->addFlash('success', 'Le rendez-vous a été supprimé avec succès.');
+    $csrfToken = $request->request->get('_token');
+    if ($this->isCsrfTokenValid('delete' . $appointment->getId(), $csrfToken)) {
+        $entityManager->remove($appointment);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Le rendez-vous a été supprimé avec succès.');
+
+        if ($request->isXmlHttpRequest()) {
             return new JsonResponse(['status' => 'success', 'message' => 'Rendez-vous supprimé avec succès.']);
         }
 
-        $this->addFlash('error', 'Jeton CSRF invalide.');
+        return $this->redirectToRoute('app_appointment_index');
+    }
+
+    $this->addFlash('error', 'Jeton CSRF invalide.');
+
+    if ($request->isXmlHttpRequest()) {
         return new JsonResponse(['status' => 'error', 'message' => 'Jeton CSRF invalide.'], Response::HTTP_BAD_REQUEST);
     }
+
+    return $this->redirectToRoute('app_appointment_show', ['id' => $appointment->getId()]);
+}
 
     /**
      * Helper method to check if an appointment is within professional's business hours.

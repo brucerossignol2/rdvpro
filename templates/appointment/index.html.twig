@@ -119,10 +119,27 @@
                 <h4 id="modalTitle" class="mb-3"></h4>
                 <p><strong><i class="fas fa-calendar-day me-2"></i>Date :</strong> <span id="modalDate"></span></p>
                 <p><strong><i class="fas fa-clock me-2"></i>Heure :</strong> <span id="modalTime"></span></p>
+                
+                {# Affichage du statut #}
+                <p id="modalStatus"><strong><i class="fas fa-info-circle me-2"></i>Statut :</strong> <span id="modalStatusBadge"></span></p>
+                
                 <p id="modalClient" style="display: none;"><strong><i class="fas fa-user me-2"></i>Client :</strong> <span id="modalClientName"></span></p>
                 <p id="modalServices" style="display: none;"><strong><i class="fas fa-briefcase me-2"></i>Prestations :</strong> <span id="modalServicesList"></span></p>
                 <p id="modalDescription" style="display: none;"><strong><i class="fas fa-info-circle me-2"></i>Description :</strong> <span id="modalDescriptionText"></span></p>
                 <p id="modalUnavailabilityLabel" class="text-danger" style="display: none;"><i class="fas fa-ban me-2"></i>Ceci est une indisponibilité personnelle.</p>
+                
+                {# Boutons de changement de statut #}
+                <div id="modalStatusButtons" class="d-flex flex-wrap gap-2 mt-3" style="display: none;">
+                    <button type="button" id="confirmButton" class="btn btn-sm btn-success" style="display: none;">
+                        <i class="fas fa-check-circle me-1"></i> Confirmer
+                    </button>
+                    <button type="button" id="cancelButton" class="btn btn-sm btn-secondary" style="display: none;">
+                        <i class="fas fa-times-circle me-1"></i> Annuler
+                    </button>
+                    <button type="button" id="pendingButton" class="btn btn-sm btn-warning" style="display: none;">
+                        <i class="fas fa-hourglass-half me-1"></i> En attente
+                    </button>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
@@ -229,33 +246,53 @@
                     document.getElementById('modalDate').textContent = appointment.start.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                     document.getElementById('modalTime').textContent = appointment.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' - ' + appointment.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-                    // Show/hide client and services based on unavailability
+                    // --- Étape 1 : Cacher tous les éléments conditionnels par défaut à chaque clic ---
+                    document.getElementById('modalClient').style.display = 'none';
+                    document.getElementById('modalServices').style.display = 'none';
+                    document.getElementById('modalDescription').style.display = 'none';
+                    document.getElementById('modalUnavailabilityLabel').style.display = 'none';
+                    document.getElementById('modalStatus').style.display = 'none'; // Cacher la ligne entière du statut par défaut
+                    document.getElementById('modalStatusButtons').style.display = 'none'; // Cacher les boutons par défaut
+                    document.getElementById('confirmButton').style.display = 'none'; // S'assurer que les boutons individuels sont cachés
+                    document.getElementById('cancelButton').style.display = 'none';
+                    document.getElementById('pendingButton').style.display = 'none';
+                    // --------------------------------------------------------------------------------
+
                     if (extendedProps.isPersonalUnavailability) {
-                        document.getElementById('modalClient').style.display = 'none';
-                        document.getElementById('modalServices').style.display = 'none';
-                        document.getElementById('modalUnavailabilityLabel').style.display = 'block';
+                        // C'est une indisponibilité personnelle
+                        document.getElementById('modalUnavailabilityLabel').style.display = 'block'; // Afficher le label "Ceci est une indisponibilité"
+                        document.getElementById('modalStatus').style.display = 'block'; // Afficher la ligne du statut
+                        document.getElementById('modalStatusBadge').innerHTML = '<span class="badge bg-info"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span>';
+                        // Les boutons de statut (modalStatusButtons, confirmButton, etc.) restent cachés grâce à la réinitialisation et ne sont pas affichés ici.
                     } else {
+                        // C'est un rendez-vous classique
                         document.getElementById('modalClient').style.display = 'block';
                         document.getElementById('modalServices').style.display = 'block';
-                        document.getElementById('modalUnavailabilityLabel').style.display = 'none';
+                        document.getElementById('modalStatus').style.display = 'block'; // Afficher la ligne du statut
+                        document.getElementById('modalStatusButtons').style.display = 'flex'; // Afficher le conteneur des boutons de statut
+
                         document.getElementById('modalClientName').textContent = extendedProps.clientName || 'N/A';
                         document.getElementById('modalServicesList').textContent = extendedProps.services.map(s => s.name).join(', ') || 'Aucune';
+                        
+                        // Affichage du statut selon la valeur
+                        updateStatusDisplay(extendedProps.status);
+                        
+                        // Affichage des boutons de changement de statut basé sur le statut réel du RDV
+                        updateStatusButtons(extendedProps.status, appointment.id);
+
+                        // Afficher la description si elle existe
+                        if (extendedProps.description) {
+                            document.getElementById('modalDescription').style.display = 'block';
+                            document.getElementById('modalDescriptionText').textContent = extendedProps.description;
+                        }
                     }
 
-                    // Show description if available
-                    if (extendedProps.description) {
-                        document.getElementById('modalDescription').style.display = 'block';
-                        document.getElementById('modalDescriptionText').textContent = extendedProps.description;
-                    } else {
-                        document.getElementById('modalDescription').style.display = 'none';
-                    }
-
-                    // Set edit button link
+                    // Set edit button link (valable pour les deux types d'événements)
                     document.getElementById('editAppointmentButton').href = '{{ path('app_appointment_edit', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
 
-                    // Set delete button form action and token
+                    // Set delete button form action and token (valable pour les deux types d'événements)
                     document.getElementById('deleteAppointmentForm').action = '{{ path('app_appointment_delete', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
-                    document.getElementById('deleteAppointmentToken').value = extendedProps.deleteToken; // Use the pre-generated token
+                    document.getElementById('deleteAppointmentToken').value = extendedProps.deleteToken; 
 
                     // Show the modal
                     var appointmentDetailModal = new bootstrap.Modal(document.getElementById('appointmentDetailModal'));
@@ -294,6 +331,128 @@
                 // Les boutons de l'en-tête sont gérés par le CSS (@media query)
                 // Il n'est pas nécessaire de manipuler headerToolbar ici via JS.
             });
+
+            // Fonction pour mettre à jour l'affichage du statut
+            function updateStatusDisplay(status) {
+                let statusBadge = '';
+                switch(status) {
+                    case 'confirmed':
+                        statusBadge = '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Confirmé</span>';
+                        break;
+                    case 'cancelled':
+                        statusBadge = '<span class="badge bg-secondary"><i class="fas fa-times-circle"></i> Annulé</span>';
+                        break;
+                    case 'pending':
+                    default:
+                        statusBadge = '<span class="badge bg-warning"><i class="fas fa-hourglass-half"></i> En attente</span>';
+                        break;
+                }
+                document.getElementById('modalStatusBadge').innerHTML = statusBadge;
+            }
+
+            // Fonction pour mettre à jour les boutons de changement de statut
+            function updateStatusButtons(currentStatus, appointmentId) {
+                // Réinitialiser tous les boutons
+                document.getElementById('confirmButton').style.display = 'none';
+                document.getElementById('cancelButton').style.display = 'none';
+                document.getElementById('pendingButton').style.display = 'none';
+
+                // Afficher les boutons appropriés selon le statut actuel
+                if (currentStatus !== 'confirmed') {
+                    document.getElementById('confirmButton').style.display = 'inline-block';
+                    document.getElementById('confirmButton').onclick = function() {
+                        updateAppointmentStatus(appointmentId, 'confirmed');
+                    };
+                }
+
+                if (currentStatus !== 'cancelled') {
+                    document.getElementById('cancelButton').style.display = 'inline-block';
+                    document.getElementById('cancelButton').onclick = function() {
+                        updateAppointmentStatus(appointmentId, 'cancelled');
+                    };
+                }
+
+                if (currentStatus !== 'pending' && currentStatus !== 'confirmed') {
+                    document.getElementById('pendingButton').style.display = 'inline-block';
+                    document.getElementById('pendingButton').onclick = function() {
+                        updateAppointmentStatus(appointmentId, 'pending');
+                    };
+                }
+            }
+
+            // Fonction pour mettre à jour le statut d'un rendez-vous - CORRIGÉE
+            function updateAppointmentStatus(appointmentId, newStatus) {
+                // CORRECTION : Ne pas concaténer le token CSRF avec l'ID et le statut
+                const csrfToken = '{{ csrf_token('update_status') }}';
+                
+                // Debug pour vérifier les valeurs
+                console.log('appointmentId:', appointmentId);
+                console.log('newStatus:', newStatus);
+                console.log('csrfToken:', csrfToken);
+                
+                fetch('{{ path('app_appointment_update_status', {'id': 'PLACEHOLDER_ID', 'status': 'PLACEHOLDER_STATUS'}) }}'.replace('PLACEHOLDER_ID', appointmentId).replace('PLACEHOLDER_STATUS', newStatus), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new URLSearchParams({
+                        '_token': csrfToken
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Mise à jour réussie
+                        updateStatusDisplay(newStatus);
+                        updateStatusButtons(newStatus, appointmentId);
+                        
+                        // Mettre à jour l'événement dans le calendrier
+                        const event = calendar.getEventById(appointmentId);
+                        if (event) {
+                            event.setExtendedProp('status', newStatus);
+                        }
+                        
+                        // Afficher un message de succès
+                        showAlert('success', 'Statut mis à jour avec succès !');
+                        
+                    } else {
+                        showAlert('danger', data.message || 'Erreur lors de la mise à jour du statut.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showAlert('danger', 'Une erreur est survenue lors de la mise à jour du statut.');
+                });
+            }
+
+            // Fonction pour afficher une alerte
+            function showAlert(type, message) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                const container = document.querySelector('main');
+                const firstChild = container.firstElementChild;
+                container.insertBefore(alertDiv, firstChild.nextSibling);
+                
+                // Supprimer l'alerte après 5 secondes
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
 
             // Function to send updated appointment times to the server
             function updateAppointmentTimes(id, newStart, newEnd, info) { // Added info parameter
@@ -378,6 +537,11 @@
                         window.location.reload();
                     });
                 }
+            });
+            // Recharger la page lorsque la modal est complètement cachée
+            var appointmentDetailModalElement = document.getElementById('appointmentDetailModal');
+            appointmentDetailModalElement.addEventListener('hidden.bs.modal', function () {
+                window.location.reload();
             });
         });
     </script>

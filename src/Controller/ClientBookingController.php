@@ -242,6 +242,233 @@ class ClientBookingController extends AbstractController
     }
 
     /**
+     * Displays available booking slots for a specific professional and service.
+     */
+    #[Route('/{bookingLink}/{serviceId}/slots', name: 'app_client_booking_slots', methods: ['GET'])]
+    public function slots(
+        string $bookingLink,
+        int $serviceId,
+        UserRepository $userRepository,
+        ServiceRepository $serviceRepository,
+        AppointmentRepository $appointmentRepository,
+        BusinessHoursRepository $businessHoursRepository,
+        Request $request
+    ): Response {
+        $professional = $userRepository->findOneBy(['bookingLink' => $bookingLink]);
+        if (!$professional) {
+            throw new NotFoundHttpException('Professionnel non trouvé.');
+        }
+
+        $selectedService = $serviceRepository->find($serviceId);
+        if (!$selectedService || $selectedService->getProfessional() !== $professional) {
+            throw new NotFoundHttpException('Service non trouvé ou n\'appartient pas à ce professionnel.');
+        }
+
+        $isClientLoggedIn = $this->security->isGranted('ROLE_CLIENT');
+        if (!$isClientLoggedIn) {
+            $request->getSession()->set('last_booking_link', $bookingLink);
+        } else {
+            $request->getSession()->remove('last_booking_link');
+        }
+
+        $parisTimezone = new DateTimeZone('Europe/Paris');
+        $now = new DateTime('now', $parisTimezone);
+
+        $availableSlots = [];
+        $displayDays = 5; // Number of days to display
+        $startDayOffset = 0; // Start from today
+
+        // Handle navigation for previous/next week
+        $currentDateParam = $request->query->get('currentDate');
+        if ($currentDateParam) {
+            try {
+                $initialDisplayDate = new DateTime($currentDateParam, $parisTimezone);
+            } catch (\Exception $e) {
+                $initialDisplayDate = clone $now;
+            }
+        } else {
+            $initialDisplayDate = clone $now;
+        }
+
+        // Adjust initialDisplayDate to the start of the relevant week for display
+        // If today is Friday, and we show 8 days, we might want to start from today or Monday
+        // For simplicity, let's just use the initialDisplayDate as the starting point
+        // and iterate from there, ensuring we skip non-working days.
+
+        // Determine the actual start date for the first column
+        $currentDay = (int)$now->format('N'); // 1 (for Monday) through 7 (for Sunday)
+        $startIterationDate = clone $now;
+        // If current time is after latest closing time of today (e.g., 17:00), start from next day
+        // This is a simplification; a more robust check involves business hours for today.
+        // For now, let's assume if it's late in the day, we show slots from tomorrow.
+        // Or, more accurately, we only show slots that are at least 1 hour in the future.
+
+        // Define a fixed interval for slot generation (30 minutes)
+        $slotInterval = new DateInterval('PT30M');
+        // Service duration needs to be converted to slots (e.g., 50 min service needs 2x30min = 1h slot)
+        $serviceDurationMinutes = $selectedService->getDuration();
+        $requiredSlotUnits = ceil($serviceDurationMinutes / 30); // Number of 30-min units required
+        $actualServiceDuration = new DateInterval('PT' . ($requiredSlotUnits * 30) . 'M');
+
+        for ($i = 0; $i < $displayDays * 2; $i++) { // Iterate enough days to find 8 working days
+            $currentWorkingDate = (clone $initialDisplayDate)->modify("+$i days");
+            $dayOfWeek = (int)$currentWorkingDate->format('N'); // 1 (Mon) - 7 (Sun)
+
+            // Fetch business hours for the current day of the week
+            $businessHours = $businessHoursRepository->findOneBy([
+                'professional' => $professional,
+                'dayOfWeek' => $dayOfWeek
+            ]);
+
+            // If no business hours or not open for this day, skip
+            if (!$businessHours || !$businessHours->isIsOpen()) {
+                continue;
+            }
+
+            $daySlots = [];
+
+            // Get existing appointments/unavailabilities for this specific day
+            $startOfDay = (clone $currentWorkingDate)->setTime(0, 0, 0);
+            $endOfDay = (clone $currentWorkingDate)->setTime(23, 59, 59);
+            $existingAppointments = $appointmentRepository->findAppointmentsInDateRange(
+                $professional,
+                $startOfDay, // Pass UTC DateTime objects if DB stores UTC
+                $endOfDay    // Pass UTC DateTime objects if DB stores UTC
+            );
+
+            // Convert existing appointments to Paris timezone for comparison with business hours
+            $occupiedSlots = [];
+            foreach ($existingAppointments as $appt) {
+                $apptStartParis = (clone $appt->getStartTime())->setTimezone($parisTimezone);
+                $apptEndParis = (clone $appt->getEndTime())->setTimezone($parisTimezone);
+                $occupiedSlots[] = [
+                    'start' => $apptStartParis,
+                    'end' => $apptEndParis
+                ];
+            }
+
+            // Generate slots for the first period
+            if ($businessHours->getStartTime() && $businessHours->getEndTime()) {
+                $start = new DateTime($currentWorkingDate->format('Y-m-d') . ' ' . $businessHours->getStartTime()->format('H:i:s'), $parisTimezone);
+                $end = new DateTime($currentWorkingDate->format('Y-m-d') . ' ' . $businessHours->getEndTime()->format('H:i:s'), $parisTimezone);
+                $daySlots = array_merge($daySlots, $this->generateAvailableTimeSlots(
+                    $start,
+                    $end,
+                    $slotInterval,
+                    $actualServiceDuration,
+                    $now,
+                    $occupiedSlots
+                ));
+            }
+
+            // Generate slots for the second period
+            if ($businessHours->getStartTime2() && $businessHours->getEndTime2()) {
+                $start2 = new DateTime($currentWorkingDate->format('Y-m-d') . ' ' . $businessHours->getStartTime2()->format('H:i:s'), $parisTimezone);
+                $end2 = new DateTime($currentWorkingDate->format('Y-m-d') . ' ' . $businessHours->getEndTime2()->format('H:i:s'), $parisTimezone);
+                $daySlots = array_merge($daySlots, $this->generateAvailableTimeSlots(
+                    $start2,
+                    $end2,
+                    $slotInterval,
+                    $actualServiceDuration,
+                    $now,
+                    $occupiedSlots
+                ));
+            }
+
+            if (!empty($daySlots)) {
+                $availableSlots[$currentWorkingDate->format('Y-m-d')] = [
+                    'date' => $currentWorkingDate,
+                    'slots' => $daySlots
+                ];
+            }
+
+            // Stop if we have enough working days for display, but keep iterating to find up to 8
+            if (count($availableSlots) >= $displayDays) {
+                break;
+            }
+        }
+        // Take only the first $displayDays working days
+        $availableSlots = array_slice($availableSlots, 0, $displayDays, true);
+
+
+        return $this->render('client_booking/slots.html.twig', [
+            'professional' => $professional,
+            'selectedService' => $selectedService,
+            'availableSlots' => $availableSlots,
+            'isClientLoggedIn' => $isClientLoggedIn,
+            'clientRegistrationBookingLink' => $professional->getBookingLink(),
+            'currentDate' => $initialDisplayDate->format('Y-m-d'), // Pass the current display date for navigation
+            'serviceDuration' => $serviceDurationMinutes, // Pass the original service duration
+        ]);
+    }
+
+    /**
+     * Helper method to generate available time slots for a given period.
+     * Takes into account existing occupied slots and a future buffer.
+     */
+    private function generateAvailableTimeSlots(
+        DateTime $periodStart,
+        DateTime $periodEnd,
+        DateInterval $slotInterval,
+        DateInterval $serviceDuration,
+        DateTime $now,
+        array $occupiedSlots
+    ): array {
+        $slots = [];
+        $currentTime = clone $periodStart;
+        $futureBuffer = (clone $now)->add(new DateInterval('PT1H')); // Slots must be at least 1 hour in the future
+
+        while ($currentTime->add($serviceDuration) <= $periodEnd) {
+            $slotStartTime = (clone $currentTime)->sub($serviceDuration); // The actual start of the slot
+            $slotEndTime = clone $currentTime;
+
+            // Ensure the slot starts at a 30-minute interval if it's not already
+            // This is crucial if business hours don't start on exact 30-min marks
+            $minute = (int)$slotStartTime->format('i');
+            if ($minute % 30 !== 0) {
+                $newMinute = floor($minute / 30) * 30 + 30;
+                if ($newMinute >= 60) {
+                    $slotStartTime->add(new DateInterval('PT' . ($newMinute - $minute) . 'M'));
+                    $slotStartTime->add(new DateInterval('PT1H'))->setTime((int)$slotStartTime->format('H'), 0); // Reset minutes to 0
+                } else {
+                    $slotStartTime->add(new DateInterval('PT' . ($newMinute - $minute) . 'M'));
+                }
+                $slotEndTime = (clone $slotStartTime)->add($serviceDuration);
+            }
+
+            // Skip if the slot's end time exceeds the period end time
+            if ($slotEndTime > $periodEnd) {
+                break;
+            }
+
+            // Skip if the slot's start time is in the past or not at least 1 hour in the future
+            if ($slotStartTime < $futureBuffer) {
+                $currentTime = (clone $slotStartTime)->add($slotInterval); // Move to the next potential 30-min start
+                continue;
+            }
+
+            $isOccupied = false;
+            foreach ($occupiedSlots as $occupied) {
+                // Check for overlap: [start1, end1) overlaps with [start2, end2) if start1 < end2 AND end1 > start2
+                if ($slotStartTime < $occupied['end'] && $slotEndTime > $occupied['start']) {
+                    $isOccupied = true;
+                    break;
+                }
+            }
+
+            if (!$isOccupied) {
+                $slots[] = [
+                    'start' => $slotStartTime,
+                    'end' => $slotEndTime
+                ];
+            }
+            $currentTime = (clone $slotStartTime)->add($slotInterval); // Move to the next 30-min increment for the next potential slot
+        }
+        return $slots;
+    }
+
+
+    /**
      * Confirms a client's booking.
      */
     #[Route('/{bookingLink}/{serviceId}/confirm/{start}/{end}', name: 'app_client_booking_confirm', methods: ['GET', 'POST'])]
@@ -349,7 +576,7 @@ class ClientBookingController extends AbstractController
             ->from($_ENV['MAILER_FROM_EMAIL'] ?? 'rdvpro@brelect.fr')
             ->to($client->getEmail())
             ->subject(
-                'Confirmation de votre rendez-vous avec ' .
+                'Votre demande de rendez-vous avec ' .
                 ($professional->getBusinessName() ?? ($professional->getFirstName() . ' ' . $professional->getLastName()))
             )
             ->html($this->renderView(

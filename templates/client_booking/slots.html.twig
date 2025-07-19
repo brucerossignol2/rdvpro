@@ -1,0 +1,204 @@
+{# templates/client_booking/slots.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Choisir un créneau avec {{ professional.businessName }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .text-booking-primary {
+            color: #3F8574 !important;
+        }
+        .btn-slot {
+            background-color: #3F8574;
+            color: white;
+            border: none;
+            margin: 5px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-slot:hover {
+            background-color: #346e61;
+            color: white;
+        }
+        .day-column {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .day-header {
+            font-size: 1.25rem;
+            color: #3F8574;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .slots-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Space between buttons */
+            justify-content: flex-start;
+        }
+
+        /* Styles pour la Responsivité */
+        /* Desktop: 5 colonnes (avec overflow si nécessaire pour plus de 5 jours) */
+        .desktop-columns {
+            display: flex;
+            overflow-x: auto; /* Permet le défilement horizontal */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Améliore le défilement sur iOS */
+            padding-bottom: 15px; /* Espace pour la barre de défilement */
+        }
+        .desktop-columns > .day-column {
+            /* Ancienne valeur: flex: 0 0 calc(100% / 8 - 10px); */
+            flex: 0 0 calc(100% / 5 - 10px); /* <-- CHANGEMENT ICI : 5 colonnes */
+            min-width: 200px; /* Largeur minimale pour éviter un trop petit affichage */
+            margin-right: 10px; /* Espace entre les colonnes */
+        }
+
+        /* Mobile: 1 colonne */
+        @media (max-width: 767.98px) { /* Bootstrap's md breakpoint is 768px */
+            .desktop-columns {
+                display: block; /* Empile les colonnes verticalement */
+                overflow-x: hidden; /* Pas de défilement horizontal sur mobile */
+            }
+            .desktop-columns > .day-column {
+                flex: none;
+                width: 100%;
+                margin-right: 0;
+            }
+            .mobile-hidden {
+                display: none;
+            }
+            .mobile-show-more-container {
+                text-align: center;
+                margin-top: 20px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4">
+        <div class="card-body">
+            <h1 class="h3 mb-4 fw-normal text-center text-booking-primary">
+                <i class="fas fa-calendar-check me-2"></i> Choisir un créneau avec {{ professional.businessName }}
+            </h1>
+            <h2 class="h5 mb-4 text-center text-secondary">
+                Service sélectionné: <strong>{{ selectedService.name }}</strong> (Durée: {{ serviceDuration }} min)
+            </h2>
+
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <a href="{{ path('app_client_booking_slots', {
+                    'bookingLink': professional.bookingLink,
+                    'serviceId': selectedService.id,
+                    'currentDate': currentDate|date('Y-m-d', 'Europe/Paris') is same as(date('now', 'Europe/Paris')|date('Y-m-d')) ? currentDate|date('Y-m-d') : currentDate|date_modify('-8 days')|date('Y-m-d')
+                }) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-chevron-left"></i> Jours précédents
+                </a>
+                <span class="h4 mb-0 text-booking-primary">
+                    {% if currentDate|date('Y-m-d') == date('now', 'Europe/Paris')|date('Y-m-d') %}
+                        Aujourd'hui
+                    {% else %}
+                        {{ currentDate|date('d/m/Y', 'Europe/Paris') }}
+                    {% endif %}
+                    -
+                    {{ (currentDate|date_modify('+' ~ (availableSlots|length - 1) ~ ' days'))|date('d/m/Y', 'Europe/Paris') }}
+                </span>
+                <a href="{{ path('app_client_booking_slots', {
+                    'bookingLink': professional.bookingLink,
+                    'serviceId': selectedService.id,
+                    'currentDate': (currentDate|date_modify('+8 days'))|date('Y-m-d')
+                }) }}" class="btn btn-outline-secondary">
+                    Jours suivants <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+
+            <div class="desktop-columns" id="slots-columns">
+                {% for dateKey, dayData in availableSlots %}
+                    <div class="day-column {% if loop.index > 4 %}mobile-hidden{% endif %}" data-day-index="{{ loop.index }}">
+                        <div class="day-header text-center">
+                            {{ dayData.date|format_datetime('full', 'none', locale='fr') }}
+                        </div>
+                        <div class="slots-container">
+                            {% if dayData.slots is not empty %}
+                                {% for slot in dayData.slots %}
+                                    {% set start_iso = slot.start|date('Y-m-d\TH:i:sP', 'UTC') %}
+                                    {% set end_iso = slot.end|date('Y-m-d\TH:i:sP', 'UTC') %}
+                                    <a href="{{ path('app_client_booking_confirm', {
+                                        'bookingLink': professional.bookingLink,
+                                        'serviceId': selectedService.id,
+                                        'start': start_iso,
+                                        'end': end_iso
+                                    }) }}" class="btn btn-slot">
+                                        {{ slot.start|date('H:i', 'Europe/Paris') }} - {{ slot.end|date('H:i', 'Europe/Paris') }}
+                                    </a>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted text-center w-100">Pas de créneaux disponibles.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if availableSlots|length > 4 %}
+                <div class="mobile-show-more-container d-md-none">
+                    <button id="show-more-days-btn" class="btn btn-outline-secondary w-100">Voir plus de jours...</button>
+                </div>
+            {% endif %}
+
+            {% if not isClientLoggedIn %}
+                <div class="alert alert-warning text-center mt-4" role="alert">
+                    Vous devez être connecté pour réserver un rendez-vous.
+                    <a href="{{ path('app_login') }}" class="alert-link">Connectez-vous</a> ou
+                    <a href="{{ path('app_client_register', {'bookingLink': clientRegistrationBookingLink}) }}" class="alert-link">créez un compte</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slotsColumns = document.getElementById('slots-columns');
+            const showMoreBtn = document.getElementById('show-more-days-btn');
+
+            if (showMoreBtn) {
+                showMoreBtn.addEventListener('click', function() {
+                    const hiddenDays = slotsColumns.querySelectorAll('.mobile-hidden');
+                    hiddenDays.forEach(day => {
+                        day.classList.remove('mobile-hidden');
+                    });
+                    showMoreBtn.style.display = 'none'; // Hide button after showing all
+                });
+            }
+
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+{% endblock %}

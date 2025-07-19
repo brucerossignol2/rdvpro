@@ -78,7 +78,7 @@ class ClientRegistrationFormType extends AbstractType
             ])
             ->add('rue', TextType::class, [
                 'attr' => ['class' => 'form-control'],
-                'label' => 'Rue et numéro',
+                'label' => 'Numéro et rue',
                 'required' => false, // Peut être nullable dans la DB, mais on le demande sur le form
                 'constraints' => [
                     new Length([

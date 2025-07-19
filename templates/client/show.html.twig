@@ -5,32 +5,10 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>GESTION CLIENTS</span>
-                </h6>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_index') }}">
-                            <i class="fas fa-users"></i> Liste des clients
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_client_new') }}">
-                            <i class="fas fa-user-plus"></i> Nouveau client
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ path('app_client_show', {'id': client.id}) }}">
-                            <i class="fas fa-user-eye"></i> Détails client
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        {# La colonne de navigation latérale a été supprimée #}
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        {# L'ajustement principal est ici : suppression de ms-sm-auto et ajustement de col-md-9 et col-lg-10 à col-12 pour prendre toute la largeur #}
+        <main class="col-12 px-md-4"> 
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
                     <i class="fas fa-user text-primary"></i>
@@ -58,8 +36,9 @@
                 {% endfor %}
             {% endfor %}
 
+            {# Le contenu principal est maintenant dans une seule colonne `main` qui contient deux sous-colonnes #}
             <div class="row">
-                <div class="col-lg-8">
+                <div class="col-lg-8"> {# Cette colonne prendra 8/12 de la largeur sur les grands écrans #}
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="card-title mb-0">
@@ -216,14 +195,14 @@
                                                         {% if appointment.status == 'confirmed' %}
                                                             <span class="badge bg-success">Confirmé</span>
                                                         {% elseif appointment.status == 'cancelled' %}
-                                                            <span class="badge bg-danger">Annulé</span>
+                                                            <span class="badge bg-secondary">Annulé</span>
                                                         {% else %}
                                                             <span class="badge bg-warning">En attente</span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
                                                         <a href="{{ path('app_appointment_show', {'id': appointment.id}) }}" 
-                                                           class="btn btn-outline-primary btn-sm">
+                                                            class="btn btn-outline-primary btn-sm">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                     </td>
@@ -246,7 +225,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-4"> {# Cette colonne prendra 4/12 de la largeur sur les grands écrans #}
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h6 class="card-title mb-0">
@@ -258,9 +237,10 @@
                                 <a href="{{ path('app_client_edit', {'id': client.id}) }}" class="btn btn-primary">
                                     <i class="fas fa-edit"></i> Modifier les informations
                                 </a>
-                                <a href="{{ path('app_appointment_new') }}" class="btn btn-success">
+                                <a href="{{ path('app_appointment_new_prefilled', {'start': 'now'|date('Y-m-d H:i:s'), 'end': ('now'|date_modify('+1 hour'))|date('Y-m-d H:i:s'), 'clientId': client.id}) }}" class="btn btn-success">
                                     <i class="fas fa-calendar-plus"></i> Nouveau rendez-vous
                                 </a>
+                                
                                 <a href="mailto:{{ client.email }}" class="btn btn-outline-info">
                                     <i class="fas fa-envelope"></i> Envoyer un email
                                 </a>
@@ -378,27 +358,7 @@
 
 <style>
 /* Styles généraux du tableau de bord et de la barre latérale */
-.sidebar {
-    min-height: 100vh;
-    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-}
-
-.sidebar .nav-link {
-    color: #333;
-    padding: .75rem 1rem;
-    border-radius: .25rem;
-    margin: .125rem .5rem;
-}
-
-.sidebar .nav-link:hover {
-    background-color: rgba(0, 123, 255, .1);
-    color: #007bff;
-}
-
-.sidebar .nav-link.active {
-    background-color: #007bff;
-    color: white;
-}
+/* La section .sidebar a été supprimée */
 
 /* Styles des cartes */
 .card {

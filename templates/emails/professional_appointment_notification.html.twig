@@ -20,7 +20,7 @@
         </div>
         <div class="content">
             <p>Bonjour {% if professional.businessName %}{{ professional.businessName }}{% else %}{{ professional.firstName }} {{ professional.lastName }}{% endif %},</p>
-            <p>Un nouveau rendez-vous a été confirmé :</p>
+            <p>Un nouveau rendez-vous a été posé par un client, veuillez le confirmer :</p>
             <ul>
                 <li><strong>Client :</strong> {{ client.firstName }} {{ client.lastName }}</li>
                 <li><strong>Date :</strong> {{ appointment.startTime|date('d/m/Y', 'Europe/Paris') }}</li>
