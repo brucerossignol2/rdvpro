@@ -198,7 +198,7 @@ class ClientController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             // Check for duplicate email on edit, excluding the current client being edited
-            $existingClient = $this->getDoctrine()->getRepository(Client::class)->findOneBy([
+            $existingClient = $entityManager->getRepository(Client::class)->findOneBy([
                 'email' => $client->getEmail(),
                 'professional' => $professional
             ]);

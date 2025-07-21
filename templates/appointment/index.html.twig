@@ -170,12 +170,14 @@
             var minTime = "{{ minTime }}"; // Dynamic min time
             var maxTime = "{{ maxTime }}"; // Dynamic max time
             var initialDate = "{{ initialDate }}"; // Dynamic initial date
+            var hiddenDays = {{ hiddenDays|raw }}; // Récupérer les jours à cacher - RÉACTIVÉ
 
             // Debugging: Log the values received from the controller
             console.log('minTime from controller:', minTime);
             console.log('maxTime from controller:', maxTime);
             console.log('businessHours from controller:', businessHours);
             console.log('initialDate from controller:', initialDate);
+            console.log('hiddenDays from controller:', hiddenDays); // Log hiddenDays - RÉACTIVÉ
 
             // --- Logique pour la vue responsive du calendrier ---
             // Fonction pour déterminer la vue initiale et la configuration de la barre d'outils
@@ -203,7 +205,6 @@
 
             // Obtenez la configuration initiale en fonction de la taille de l'écran
             const calendarConfig = getCalendarConfig();
-
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: calendarConfig.initialView, // Utilise la vue déterminée
                 initialDate: initialDate, // Set the initial date dynamically
@@ -226,10 +227,11 @@
                 selectable: true, // Allow selecting time slots
                 selectMirror: true, // Show a mirror event when selecting
                 events: events, // Load events
-                businessHours: businessHours, // Apply business hours to gray out non-working times
-                selectConstraint: 'businessHours', // Restrict selection to business hours
-                eventConstraint: 'businessHours', // Restrict dragging/resizing events to business hours
+                businessHours: businessHours, // Réactivé cette ligne
+                selectConstraint: 'businessHours', // Réactivé cette ligne pour empêcher la sélection en dehors des heures ouvrables
+                eventConstraint: 'businessHours', // Réactivé cette ligne pour empêcher le déplacement/redimensionnement en dehors des heures ouvrables
                 height: 'auto', // Set height to auto to prevent large empty space
+                hiddenDays: hiddenDays, // RÉACTIVÉ CETTE LIGNE
 
                 // Handle date/time selection to create a new appointment
                 select: function(info) {
@@ -245,7 +247,6 @@
                     document.getElementById('modalTitle').textContent = appointment.title;
                     document.getElementById('modalDate').textContent = appointment.start.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                     document.getElementById('modalTime').textContent = appointment.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' - ' + appointment.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
                     // --- Étape 1 : Cacher tous les éléments conditionnels par défaut à chaque clic ---
                     document.getElementById('modalClient').style.display = 'none';
                     document.getElementById('modalServices').style.display = 'none';
@@ -262,8 +263,7 @@
                         // C'est une indisponibilité personnelle
                         document.getElementById('modalUnavailabilityLabel').style.display = 'block'; // Afficher le label "Ceci est une indisponibilité"
                         document.getElementById('modalStatus').style.display = 'block'; // Afficher la ligne du statut
-                        document.getElementById('modalStatusBadge').innerHTML = '<span class="badge bg-info"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span>';
-                        // Les boutons de statut (modalStatusButtons, confirmButton, etc.) restent cachés grâce à la réinitialisation et ne sont pas affichés ici.
+                        document.getElementById('modalStatusBadge').innerHTML = '<span class="badge bg-info"><i class="fas fa-ban"></i> Indisponibilité Personnelle</span>'; // Les boutons de statut (modalStatusButtons, confirmButton, etc.) restent cachés grâce à la réinitialisation et ne sont pas affichés ici.
                     } else {
                         // C'est un rendez-vous classique
                         document.getElementById('modalClient').style.display = 'block';
@@ -276,10 +276,8 @@
                         
                         // Affichage du statut selon la valeur
                         updateStatusDisplay(extendedProps.status);
-                        
                         // Affichage des boutons de changement de statut basé sur le statut réel du RDV
                         updateStatusButtons(extendedProps.status, appointment.id);
-
                         // Afficher la description si elle existe
                         if (extendedProps.description) {
                             document.getElementById('modalDescription').style.display = 'block';
@@ -289,7 +287,6 @@
 
                     // Set edit button link (valable pour les deux types d'événements)
                     document.getElementById('editAppointmentButton').href = '{{ path('app_appointment_edit', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
-
                     // Set delete button form action and token (valable pour les deux types d'événements)
                     document.getElementById('deleteAppointmentForm').action = '{{ path('app_appointment_delete', {'id': 'PLACEHOLDER_ID'}) }}'.replace('PLACEHOLDER_ID', appointment.id);
                     document.getElementById('deleteAppointmentToken').value = extendedProps.deleteToken; 
@@ -317,7 +314,6 @@
                     }
                 }
             });
-
             calendar.render();
 
             // --- Gestion du redimensionnement de la fenêtre pour la vue responsive ---
@@ -331,7 +327,6 @@
                 // Les boutons de l'en-tête sont gérés par le CSS (@media query)
                 // Il n'est pas nécessaire de manipuler headerToolbar ici via JS.
             });
-
             // Fonction pour mettre à jour l'affichage du statut
             function updateStatusDisplay(status) {
                 let statusBadge = '';
@@ -420,7 +415,6 @@
                         
                         // Afficher un message de succès
                         showAlert('success', 'Statut mis à jour avec succès !');
-                        
                     } else {
                         showAlert('danger', data.message || 'Erreur lors de la mise à jour du statut.');
                     }
@@ -441,11 +435,9 @@
                     ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
-                
                 const container = document.querySelector('main');
                 const firstChild = container.firstElementChild;
                 container.insertBefore(alertDiv, firstChild.nextSibling);
-                
                 // Supprimer l'alerte après 5 secondes
                 setTimeout(() => {
                     if (alertDiv.parentNode) {

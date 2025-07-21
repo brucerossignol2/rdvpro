@@ -181,6 +181,38 @@ class AppointmentController extends AbstractController
         }
         // --- FIN DE LA LOGIQUE MISE À JOUR POUR initialDate ---
 
+        // DÉBUT DE LA LOGIQUE POUR hiddenDays
+        $hiddenDays = [];
+        $allDaysOfWeek = range(0, 6); // FullCalendar days: 0=Sunday, 1=Monday, ..., 6=Saturday
+        $foundOpenHoursForAnyDay = false; // Flag to track if at least one day has open hours
+
+        foreach ($allDaysOfWeek as $fcDay) {
+            $phpDayOfWeek = ($fcDay === 0) ? 7 : $fcDay; // Convert FullCalendar day to PHP day (1=Mon, 7=Sun)
+            $businessHour = $businessHoursRepository->findOneBy(['professional' => $professional, 'dayOfWeek' => $phpDayOfWeek]);
+
+            if (!$businessHour || !$businessHour->isIsOpen()) {
+                $hiddenDays[] = $fcDay; // Add to hiddenDays if not open
+            } else {
+                $foundOpenHoursForAnyDay = true;
+                // ... (your existing logic for minTimeInMinutes and maxTimeInMinutes for open days)
+            }
+        }
+
+        // Si aucun jour ouvré n'est trouvé, FullCalendar affichera un calendrier vide ou avec des problèmes.
+        // Vous pourriez vouloir afficher un message ou définir une vue par défaut.
+        // Pour l'instant, on s'assure que si tous les jours sont cachés, on gère ça.
+        if (!$foundOpenHoursForAnyDay && count($allDaysOfWeek) === count($hiddenDays)) {
+            // Optionnel : Gérer le cas où tous les jours sont fermés.
+            // Pour l'instant, FullCalendar les cachera tous si hiddenDays contient 0-6.
+            // Vous pourriez vouloir ajouter un flash message ici pour le professionnel.
+            $this->addFlash('warning', 'Aucune heure d\'ouverture n\'est définie pour la semaine. Le calendrier peut apparaître vide.');
+            // Si tous les jours sont cachés, FullCalendar peut ne rien afficher,
+            // donc il pourrait être judicieux de ne pas cacher tous les jours
+            // ou de définir une plage horaire par défaut si aucun jour n'est ouvré.
+            // Pour cette réponse, nous supposons qu'il y aura au moins un jour ouvré, ou que cacher tous les jours est l'intention.
+        }
+        // FIN DE LA LOGIQUE POUR hiddenDays
+
         foreach ($businessHoursEntities as $bh) {
             if ($bh->isIsOpen()) {
                 $foundOpenHours = true; // Mark that open hours were found
@@ -251,6 +283,7 @@ class AppointmentController extends AbstractController
             'minTime' => $formattedMinTime, // Pass dynamic min time
             'maxTime' => $formattedMaxTime, // Pass dynamic max time
             'initialDate' => $initialDate, // Pass the dynamically determined initial date
+            'hiddenDays' => json_encode($hiddenDays), // Passer les jours à cacher
         ]);
     }
 
@@ -261,9 +294,11 @@ class AppointmentController extends AbstractController
     #[Route('/new/{start}/{end}/{clientId}', name: 'app_appointment_new_prefilled', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $entityManager, BusinessHoursRepository $businessHoursRepository, ServiceRepository $serviceRepository, ClientRepository $clientRepository, ?string $start = null, ?string $end = null, ?int $clientId = null): Response
     {
+        // Initialiser la variable $appointment ici
+        $appointment = new Appointment();
+
         /** @var \App\Entity\User $professional */
         $professional = $this->getUser();
-        $appointment = new Appointment();
 
         // Set default title based on professional's business name or full name
         //$professionalName = $professional->getBusinessName() ?: ($professional->getFirstName() . ' ' . $professional->getLastName());
