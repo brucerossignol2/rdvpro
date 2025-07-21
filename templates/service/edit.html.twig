@@ -64,110 +64,115 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            {{ form_start(form, {'attr': {'novalidate': 'novolidate'}}) }}
-                                <div class="row">
-                                    {# Colonne pour les détails principaux (Libellé, Prix, Durée, Actif) #}
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted mb-3">
-                                            <i class="fas fa-info-circle"></i> Détails principaux
-                                        </h6>
-                                        {# Libellé du service - pleine largeur dans cette colonne #}
-                                        <div class="mb-3">
-                                            {{ form_label(form.name, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
-                                            {{ form_widget(form.name, {'attr': {'class': 'form-control w-100'}}) }}
-                                            {{ form_errors(form.name) }}
-                                        </div>
-
-                                        <div class="mb-3">
-                                            {{ form_label(form.price, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
-                                            {# Nouvelle div pour la colonne Bootstrap #}
-                                            <div class="col-md-6"> {# Ou col-md-4, col-md-3, etc., selon la largeur désirée #}
-                                                <div class="input-group">
-                                                    {{ form_widget(form.price, {'attr': {'class': 'form-control text-center'}}) }}
-                                                    <span class="input-group-text">€</span>
-                                                </div>
-                                            </div>
-                                            {{ form_errors(form.price) }}
-                                        </div>
-
-                                        <div class="mb-3">
-                                            {{ form_label(form.duration, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
-                                            <div class="col-md-6"> 
-                                                <div class="input-group"> 
-                                                    {{ form_widget(form.duration, {'attr': {'class': 'form-control text-center'}}) }}
-                                                    <span class="input-group-text">min</span> 
-                                                </div>
-                                            </div>
-                                            {{ form_errors(form.duration) }}
-                                        </div>
-
-                                        <div class="mb-3 form-check">
-                                           {{ form_widget(form.active, {'attr': {'class': 'form-check-input'}}) }}
-                                           {{ form_label(form.active, 'Service actif', {'label_attr': {'class': 'form-check-label'}}) }}
-                                            <small class="d-block text-muted ms-4">(visible pour la réservation)</small>
-                                            {{ form_errors(form.active) }}
-                                        </div>
-
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                            <div class="row">
+                                {# Colonne pour les détails principaux (Libellé, Prix, Durée, Actif) #}
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fas fa-info-circle"></i> Détails principaux
+                                    </h6>
+                                    {# Libellé du service - pleine largeur dans cette colonne #}
+                                    <div class="mb-3">
+                                        {{ form_label(form.name, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                        {{ form_widget(form.name, {'attr': {'class': 'form-control w-100'}}) }}
+                                        {{ form_errors(form.name) }}
                                     </div>
 
-                                    {# Colonne pour le contenu additionnel (Description, Image) #}
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted mb-3">
-                                            <i class="fas fa-pencil-alt"></i> Contenu additionnel
-                                        </h6>
-                                        <div class="mb-3">
-                                            {{ form_label(form.description, null, {'label_attr': {'class': 'form-label d-block fw-bold'}}) }}
-                                            {{ form_widget(form.description, {'attr': {'class': 'form-control w-100'}}) }}
-                                            {{ form_errors(form.description) }}
+                                    <div class="mb-3">
+                                        {{ form_label(form.price, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
+                                        {# Nouvelle div pour la colonne Bootstrap #}
+                                        <div class="col-md-6"> {# Ou col-md-4, col-md-3, etc., selon la largeur désirée #}
+                                            <div class="input-group">
+                                                {{ form_widget(form.price, {'attr': {'class': 'form-control text-center'}}) }}
+                                                <span class="input-group-text">€</span>
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            {{ form_label(form.imageFile, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
-                                            {{ form_widget(form.imageFile) }}
-                                            {{ form_errors(form.imageFile) }}
-
-                                            {# Afficher l'image actuelle si elle existe #}
-                                            {% if service.image %}
-                                                <div class="mt-2 text-center">
-                                                    <p class="mb-1 text-muted small">Image actuelle :</p>
-                                                    <img src="{{ asset('uploads/images/' ~ service.image) }}" alt="{{ service.name }}" class="img-thumbnail" style="max-height: 150px; object-fit: cover;">
-                                                </div>
-                                            {% else %}
-                                                <div class="mt-2 text-center text-muted small">
-                                                    Aucune image enregistrée.
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                        {{ form_errors(form.price) }}
                                     </div>
-                                </div>
 
-                                <hr class="my-4">
-
-                                <h6 class="mt-4 mb-3 text-muted">
-                                    <i class="fas fa-map-marker-alt"></i> Type de service disponible
-                                </h6>
-                                {# Affichage des boutons radio sur deux colonnes #}
-                                <div class="row mb-3">
-                                    {% for child in form.appointmentType %}
+                                    <div class="mb-3">
+                                        {{ form_label(form.duration, null, {'label_attr': {'class': 'form-label fw-bold d-block'}}) }}
                                         <div class="col-md-6">
-                                            <div class="form-check">
-                                                {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
-                                                {{ form_label(child, null, {'label_attr': {'class': 'form-check-label ms-2'}}) }} {# Ajout de ms-2 pour l'espace #}
+                                            <div class="input-group">
+                                                {{ form_widget(form.duration, {'attr': {'class': 'form-control text-center'}}) }}
+                                                <span class="input-group-text">min</span>
                                             </div>
                                         </div>
-                                    {% endfor %}
-                                    {{ form_errors(form.appointmentType) }}
+                                        {{ form_errors(form.duration) }}
+                                    </div>
+
+                                    <div class="mb-3 form-check">
+                                        {{ form_widget(form.active, {'attr': {'class': 'form-check-input'}}) }}
+                                        {{ form_label(form.active, 'Service actif', {'label_attr': {'class': 'form-check-label'}}) }}
+                                        <small class="d-block text-muted ms-4">(visible pour la réservation)</small>
+                                        {{ form_errors(form.active) }}
+                                    </div>
                                 </div>
 
-                                <hr class="my-4">
-                                
-                                <div class="d-flex justify-content-between">
-                                    <a href="{{ path('app_service_index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Annuler
-                                    </a>
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-save"></i> Enregistrer les modifications
-                                    </button>
+                                {# Colonne pour le contenu additionnel (Description, Image) #}
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fas fa-pencil-alt"></i> Contenu additionnel
+                                    </h6>
+                                    <div class="mb-3">
+                                        {{ form_label(form.description, null, {'label_attr': {'class': 'form-label d-block fw-bold'}}) }}
+                                        {{ form_widget(form.description, {'attr': {'class': 'form-control w-100'}}) }}
+                                        {{ form_errors(form.description) }}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form_label(form.imageFile, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                        {{ form_widget(form.imageFile) }}
+                                        {{ form_errors(form.imageFile) }}
+
+                                        {# Afficher l'image actuelle si elle existe #}
+                                        {% if service.image %}
+                                            <div class="mt-2 text-center">
+                                                <p class="mb-1 text-muted small">Image actuelle :</p>
+                                                <img src="{{ asset('uploads/images/' ~ service.image) }}"
+                                                     alt="{{ service.name }}"
+                                                     class="img-thumbnail rounded shadow"
+                                                     style="max-height: 150px; object-fit: cover;">
+                                                <p class="small text-muted mt-1">
+                                                    (Laisser vide pour conserver l'image actuelle. Uploader un nouveau fichier pour la remplacer.)
+                                                </p>
+                                            </div>
+                                        {% else %}
+                                            <div class="mt-2 text-center text-muted small">
+                                                Aucune image enregistrée.
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h6 class="mt-4 mb-3 text-muted">
+                                <i class="fas fa-map-marker-alt"></i> Type de service disponible
+                            </h6>
+                            {# Affichage des boutons radio sur deux colonnes #}
+                            <div class="row mb-3">
+                                {% for child in form.appointmentType %}
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
+                                            {{ form_label(child, null, {'label_attr': {'class': 'form-check-label ms-2'}}) }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                {{ form_errors(form.appointmentType) }}
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ path('app_service_index') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> Enregistrer les modifications
+                                </button>
+                            </div>
                             {{ form_end(form) }}
                         </div>
                     </div>
