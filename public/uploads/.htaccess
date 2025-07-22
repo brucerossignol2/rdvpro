@@ -1,0 +1,28 @@
+# Fichier .htaccess à placer dans publicuploads
+Options +FollowSymLinks
+RewriteEngine On
+
+# Autoriser l'accès aux images
+FilesMatch .(jpgjpegpnggifwebpsvg)$
+    Order allow,deny
+    Allow from all
+    Require all granted
+FilesMatch
+
+# Empêcher l'exécution de scripts
+FilesMatch .(phpphtmlphp3php4php5plpyjspaspshcgi)$
+    Order deny,allow
+    Deny from all
+FilesMatch
+
+# Empêcher la lecture des dossiers
+Options -Indexes
+
+# Headers pour les images
+IfModule mod_expires.c
+    ExpiresActive On
+    ExpiresByType imagejpg access plus 1 year
+    ExpiresByType imagejpeg access plus 1 year
+    ExpiresByType imagepng access plus 1 year
+    ExpiresByType imagewebp access plus 1 year
+IfModule
