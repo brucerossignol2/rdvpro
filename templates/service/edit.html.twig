@@ -206,4 +206,49 @@
         </main>
     </div>
 </div>
+
+{# Ajoutez ce code temporaire dans votre template pour débugger #}
+{% if service.image %}
+    <div class="mt-2 text-center">
+        <p class="mb-1 text-muted small">Image actuelle :</p>
+        
+        {# Informations de debug #}
+        <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            Nom du fichier: {{ service.image }}<br>
+            Chemin complet: {{ absolute_url(asset('uploads/images/' ~ service.image)) }}<br>
+            Chemin relatif: {{ asset('uploads/images/' ~ service.image) }}<br>
+            
+            {# Vérification si le fichier existe côté serveur #}
+            {% set imagePath = 'uploads/images/' ~ service.image %}
+            Fichier existe: 
+            <script>
+                // Test côté client si l'image est accessible
+                var img = new Image();
+                img.onload = function() {
+                    document.getElementById('image-status').innerHTML = '<span class="text-success">✓ Image accessible</span>';
+                };
+                img.onerror = function() {
+                    document.getElementById('image-status').innerHTML = '<span class="text-danger">✗ Image non accessible</span>';
+                };
+                img.src = '{{ asset('uploads/images/' ~ service.image)|e('js') }}';
+            </script>
+            <span id="image-status">Vérification en cours...</span>
+        </div>
+        
+        <img src="{{ asset('uploads/images/' ~ service.image) }}"
+             alt="{{ service.name }}"
+             class="img-thumbnail rounded shadow"
+             style="max-height: 150px; object-fit: cover;"
+             onerror="this.style.border='2px solid red'; this.alt='Image non trouvée';">
+             
+        <p class="small text-muted mt-1">
+            (Laisser vide pour conserver l'image actuelle. Uploader un nouveau fichier pour la remplacer.)
+        </p>
+    </div>
+{% else %}
+    <div class="mt-2 text-center text-muted small">
+        Aucune image enregistrée.
+    </div>
+{% endif %}
 {% endblock %}
