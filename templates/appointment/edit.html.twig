@@ -142,6 +142,13 @@
                                     {{ form_errors(form.description) }}
                                 </div>
 
+                                <div class="mb-3">
+                                    
+                                    {{ form_label(form.descriptionPrive) }}
+                                    {{ form_widget(form.descriptionPrive, {'attr': {'rows': 2}}) }} {# Reduced height #}
+                                    {{ form_errors(form.descriptionPrive) }}
+                                </div>
+
                                 <hr class="my-4">
                                 
                                 <div class="d-flex justify-content-between">

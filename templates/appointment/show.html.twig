@@ -215,7 +215,18 @@
                                             {% else %}
                                                 <span class="text-muted">Aucun service associé</span>
                                             {% endif %}
+
                                         </div>
+                                    </div>
+                                    <div class="info-group mb-3">
+                                        <label class="info-label">Note privée</label>
+                                        <div class="info-value">
+                                            {% if appointment.descriptionPrive %}
+                                                    {{ appointment.descriptionPrive|nl2br }}
+                                            {% else %}
+                                                    <span class="text-muted">Aucune note</span>
+                                            {% endif %}
+                                          </div>
                                     </div>
                                 </div>
                             </div>

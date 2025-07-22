@@ -39,6 +39,9 @@ class Appointment
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $descriptionPrive = null;
+
     #[ORM\Column]
     private ?bool $isPersonalUnavailability = false; // True if it's a personal block, not a client appointment
 
@@ -137,6 +140,18 @@ class Appointment
         return $this;
     }
 
+        public function getDescriptionPrive(): ?string
+    {
+        return $this->descriptionPrive;
+    }
+
+    public function setDescriptionPrive(?string $descriptionPrive): static
+    {
+        $this->descriptionPrive = $descriptionPrive;
+
+        return $this;
+    }
+    
     public function isIsPersonalUnavailability(): ?bool
     {
         return $this->isPersonalUnavailability;

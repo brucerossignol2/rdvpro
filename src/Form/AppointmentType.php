@@ -43,7 +43,12 @@ class AppointmentType extends AbstractType
                 ],
             ])
             ->add('description', TextareaType::class, [
-                'label' => 'Description (optionnel)',
+                'label' => 'Note public (Visible par le client)',
+                'attr' => ['class' => 'form-control', 'rows' => 3],
+                'required' => false,
+            ])
+            ->add('descriptionPrive', TextareaType::class, [
+                'label' => 'Note privée (Non visible par le client)',
                 'attr' => ['class' => 'form-control', 'rows' => 3],
                 'required' => false,
             ])
@@ -76,13 +81,13 @@ class AppointmentType extends AbstractType
                     return $er->createQueryBuilder('c')
                         ->where('c.professional = :professional')
                         ->setParameter('professional', $professional)
-                        ->orderBy('c.lastName', 'ASC') // Changed 'c.nom' to 'c.lastName'
-                        ->addOrderBy('c.firstName', 'ASC'); // Added 'c.firstName' for secondary sort
+                        ->orderBy('c.lastName', 'ASC')
+                        ->addOrderBy('c.firstName', 'ASC');
                 },
                 'choice_label' => 'fullName',
                 'label' => 'Client',
                 'attr' => ['class' => 'form-select'],
-                'required' => false, // Required conditionally by validation callback
+                'required' => false,
                 'placeholder' => 'Sélectionnez un client',
             ])
             ->add('services', EntityType::class, [
@@ -97,10 +102,10 @@ class AppointmentType extends AbstractType
                 },
                 'choice_label' => 'name',
                 'multiple' => true,
-                'expanded' => false, // Render as select dropdown
+                'expanded' => false,
                 'label' => 'Prestations',
-                'attr' => ['class' => 'form-select select2'], // Use select2 for better multi-select UX
-                'required' => false, // Required conditionally by validation callback
+                'attr' => ['class' => 'form-select select2'],
+                'required' => false,
             ])
         ;
     }
@@ -117,7 +122,7 @@ class AppointmentType extends AbstractType
 
     public function validateAppointment(Appointment $appointment, ExecutionContextInterface $context): void
     {
-        // Validation for first time slot
+        // Validation pour les heures de début et de fin
         if ($appointment->getStartTime() && $appointment->getEndTime()) {
             if ($appointment->getStartTime() >= $appointment->getEndTime()) {
                 $context->buildViolation('L\'heure de fin doit être après l\'heure de début.')
@@ -126,7 +131,7 @@ class AppointmentType extends AbstractType
             }
         }
 
-        // If it's not a personal unavailability, client and services are required
+        // Si ce n'est pas une indisponibilité personnelle, le client et les services sont obligatoires
         if (!$appointment->isIsPersonalUnavailability()) {
             if (null === $appointment->getClient()) {
                 $context->buildViolation('Le client est obligatoire pour un rendez-vous.')
@@ -139,7 +144,7 @@ class AppointmentType extends AbstractType
                     ->addViolation();
             }
 
-            // Validate total service duration against appointment duration
+            // Valider la durée totale des services par rapport à la durée du rendez-vous
             $totalServicesDuration = $appointment->getTotalServicesDuration();
             if ($appointment->getStartTime() && $appointment->getEndTime()) {
                 $appointmentDuration = $appointment->getEndTime()->getTimestamp() - $appointment->getStartTime()->getTimestamp();
@@ -156,7 +161,7 @@ class AppointmentType extends AbstractType
                 }
             }
         } else {
-            // If it is a personal unavailability, client and services must be null/empty
+            // Si c'est une indisponibilité personnelle, le client et les services doivent être nuls/vides
             if (null !== $appointment->getClient()) {
                 $context->buildViolation('Un client ne peut pas être associé à une indisponibilité personnelle.')
                     ->atPath('client')
