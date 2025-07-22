@@ -1,5 +1,0 @@
-<Directory "/homez.654/brelect/rdvpro-sys/public/uploads">
-    Options -Indexes
-    AllowOverride None
-    Require all granted
-</Directory>
