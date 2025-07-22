@@ -18,8 +18,6 @@
             border-radius: 5px;
             text-decoration: none;
             display: inline-block;
-            width: 80px; /* Ajouté: Largeur fixe pour les boutons */
-            text-align: center; /* Ajouté: Centrer le texte si nécessaire */
         }
         .btn-slot:hover {
             background-color: #346e61;
@@ -158,6 +156,12 @@
                 {% endfor %}
             </div>
 
+            {% if availableSlots|length > 4 %}
+                <div class="mobile-show-more-container d-md-none">
+                    <button id="show-more-days-btn" class="btn btn-outline-secondary w-100">Voir plus de jours...</button>
+                </div>
+            {% endif %}
+
             {% if not isClientLoggedIn %}
                 <div class="alert alert-warning text-center mt-4" role="alert">
                     Vous devez être connecté pour réserver un rendez-vous.
@@ -175,6 +179,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const slotsColumns = document.getElementById('slots-columns');
+            const showMoreBtn = document.getElementById('show-more-days-btn');
+
+            if (showMoreBtn) {
+                showMoreBtn.addEventListener('click', function() {
+                    const hiddenDays = slotsColumns.querySelectorAll('.mobile-hidden');
+                    hiddenDays.forEach(day => {
+                        day.classList.remove('mobile-hidden');
+                    });
+                    showMoreBtn.style.display = 'none'; // Hide button after showing all
+                });
+            }
 
             // Auto-hide alerts after 5 seconds
             const alerts = document.querySelectorAll('.alert');
