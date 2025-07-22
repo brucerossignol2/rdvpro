@@ -28,3 +28,4 @@
 *.log
 *.sqlite
 /public/build/
+/public/uploads/images/
