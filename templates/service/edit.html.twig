@@ -128,7 +128,7 @@
                                         {% if service.image %}
                                             <div class="mt-2 text-center">
                                                 <p class="mb-1 text-muted small">Image actuelle :</p>
-                                                <img src="{{ asset('uploads/images/' ~ service.image) }}"
+                                                <img src="/uploads/images/{{ service.image }}"
                                                      alt="{{ service.name }}"
                                                      class="img-thumbnail rounded shadow"
                                                      style="max-height: 150px; object-fit: cover;">
