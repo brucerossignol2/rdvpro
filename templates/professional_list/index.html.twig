@@ -1,0 +1,329 @@
+{# templates/professional_list/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Annuaire des Professionnels - RDV Pro{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .text-professional-primary {
+            color: #2C5F7C !important;
+        }
+
+        .bg-professional-primary {
+            background-color: #2C5F7C !important;
+            border-color: #2C5F7C !important;
+        }
+
+        .btn-professional-primary {
+            background-color: #2C5F7C;
+            border-color: #2C5F7C;
+            color: white;
+        }
+
+        .btn-professional-primary:hover {
+            background-color: #1f4458;
+            border-color: #1f4458;
+        }
+
+        .btn-professional-outline {
+            border-color: #2C5F7C;
+            color: #2C5F7C;
+        }
+
+        .btn-professional-outline:hover {
+            background-color: #2C5F7C;
+            color: white;
+        }
+
+        .professional-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .professional-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .search-filters {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .professional-card {
+            transition: transform 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .professional-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .truncate-description {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            max-height: 4.2em;
+        }
+
+        .badge-city {
+            background-color: #17a2b8;
+        }
+
+        .contact-buttons a {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid my-5">
+    <h1 class="h2 mb-4 text-center text-professional-primary">
+        <i class="fas fa-users me-2"></i> Annuaire des Professionnels
+    </h1>
+
+    {# Barre de recherche et filtres #}
+    <div class="search-filters">
+        <form method="GET" action="{{ path('app_professional_list') }}">
+            <div class="row g-3">
+                {# Recherche générale #}
+                <div class="col-md-4">
+                    <label for="search" class="form-label">
+                        <i class="fas fa-search me-1"></i> Recherche générale
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="search" 
+                           name="search" 
+                           value="{{ currentSearch }}"
+                           placeholder="Nom, entreprise, activité...">
+                </div>
+
+                {# Filtre par ville #}
+                <div class="col-md-4">
+                    <label for="city" class="form-label">
+                        <i class="fas fa-map-marker-alt me-1"></i> Ville
+                    </label>
+                    <select class="form-select" id="city" name="city">
+                        <option value="">Toutes les villes</option>
+                        {% for city_option in cities %} 
+                            <option value="{{ city_option }}" {% if currentCity == city_option %}selected{% endif %}>
+                                {{ city_option }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Filtre par type d'entreprise #}
+                <div class="col-md-4">
+                    <label for="business_name" class="form-label">
+                        <i class="fas fa-building me-1"></i> Entreprise
+                    </label>
+                    <select class="form-select" id="business_name" name="business_name">
+                        <option value="">Toutes les entreprises</option>
+                        {% for businessName in businessNames %}
+                            <option value="{{ businessName }}" {% if currentBusinessName == businessName %}selected{% endif %}>
+                                {{ businessName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {# Boutons d'action #}
+            <div class="row mt-3">
+                <div class="col-12 d-flex justify-content-center">
+                    <button type="submit" class="btn btn-professional-primary me-2">
+                        <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                    <a href="{{ path('app_professional_list') }}" class="btn btn-professional-outline">
+                        <i class="fas fa-undo me-1"></i> Réinitialiser
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {# Résultats de recherche #}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="h5 text-professional-primary">
+                    {{ totalResults }} professionnel{{ totalResults > 1 ? 's' : '' }} trouvé{{ totalResults > 1 ? 's' : '' }}
+                    {% if currentSearch or currentCity or currentBusinessName %}
+                        <small class="text-muted">
+                            {% if currentSearch %}
+                                pour "{{ currentSearch }}"
+                            {% endif %}
+                            {% if currentCity %}
+                                à {{ currentCity }}
+                            {% endif %}
+                            {% if currentBusinessName %}
+                                chez {{ currentBusinessName }}
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    {% if professionals is empty %}
+        <div class="alert alert-info text-center" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucun professionnel trouvé avec ces critères de recherche.
+        </div>
+    {% else %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for professional in professionals %}
+                <div class="col">
+                    <div class="card professional-card h-100">
+                        {# Image de présentation #}
+                        {% if professional.presentationImage %}
+                            <img src="{{ asset('uploads/images/' ~ professional.presentationImage) }}" 
+                                 class="professional-image" 
+                                 alt="Image de {{ professional.businessName }}">
+                        {% else %}
+                            <div class="professional-image bg-light d-flex align-items-center justify-content-center">
+                                <i class="fas fa-building text-muted" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-body">
+                            {# En-tête avec logo et nom #}
+                            <div class="d-flex align-items-center mb-3">
+                                {% if professional.presentationLogo %}
+                                    <img src="{{ asset('uploads/images/' ~ professional.presentationLogo) }}" 
+                                         class="professional-logo me-3" 
+                                         alt="Logo {{ professional.businessName }}">
+                                {% else %}
+                                    <div class="professional-logo bg-professional-primary d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-user-tie text-white"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h5 class="card-title mb-1 text-professional-primary">
+                                        {{ professional.businessName }}
+                                    </h5>
+                                    <p class="card-text text-muted mb-0">
+                                        {{ professional.firstName }} {{ professional.lastName }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {# Localisation #}
+                            <div class="mb-3">
+                                <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                                <span class="text-muted">{{ professional.businessAddress|nl2br }}</span>
+                            </div>
+
+                            {# Description tronquée #}
+                            {% if professional.presentationDescription %}
+                                <div class="mb-3">
+                                    <p class="card-text truncate-description">
+                                        {{ professional.presentationDescription }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            {# Coordonnées et actions #}
+                            <div class="contact-buttons">
+                                {% if professional.businessPhone %}
+                                    <a href="tel:{{ professional.businessPhone|replace({' ': ''}) }}" 
+                                       class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-phone me-1"></i> Appeler
+                                    </a>
+                                {% endif %}
+
+                                {% if professional.businessEmail %}
+                                    <a href="mailto:{{ professional.businessEmail }}" 
+                                       class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-envelope me-1"></i> Email
+                                    </a>
+                                {% endif %}
+
+                                {% if professional.bookingLink %}
+                                    <a href="{{ path('app_professional_public_show', {'bookingLink': professional.bookingLink}) }}" 
+                                       class="btn btn-sm btn-professional-primary">
+                                        <i class="fas fa-calendar-check me-1"></i> Prendre RDV
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            {# Services disponibles (si la relation existe) #}
+                            {% if professional.services is defined and professional.services is not empty %}
+                                <div class="mt-3">
+                                    <h6 class="text-muted">
+                                        <i class="fas fa-briefcase me-1"></i> Services proposés :
+                                    </h6>
+                                    <div class="d-flex flex-wrap">
+                                        {% for service in professional.services|slice(0, 3) %}
+                                            <span class="badge bg-secondary me-1 mb-1">{{ service.name }}</span>
+                                        {% endfor %}
+                                        {% if professional.services|length > 3 %}
+                                            <span class="badge bg-light text-dark">
+                                                +{{ professional.services|length - 3 }} autres
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {# Footer de la carte #}
+                        <div class="card-footer bg-transparent">
+                            {% if professional.bookingLink %}
+                                <a href="{{ path('app_professional_public_show', {'bookingLink': professional.bookingLink}) }}" 
+                                   class="btn btn-professional-outline w-100">
+                                    <i class="fas fa-eye me-2"></i> Voir le profil complet
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{# Script pour améliorer l'UX #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit du formulaire quand on change les filtres
+    const searchForm = document.querySelector('form');
+    const selects = searchForm.querySelectorAll('select');
+    
+    selects.forEach(function(select) {
+        select.addEventListener('change', function() {
+            // Optionnel : soumettre automatiquement le formulaire
+            // searchForm.submit();
+        });
+    });
+
+    // Recherche en temps réel avec délai
+    const searchInput = document.getElementById('search');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            // Optionnel : soumettre automatiquement après 500ms
+            // searchForm.submit();
+        }, 500);
+    });
+});
+</script>
+{% endblock %}
