@@ -47,8 +47,8 @@
             </ul>
 
             <div class="d-flex justify-content-between">
-                <a href="{{ path('app_client_booking_calendar', {'bookingLink': professional.bookingLink, 'serviceId': service.id}) }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i> Retour au calendrier
+                <a href="{{ path('app_client_booking_slots', {'bookingLink': professional.bookingLink, 'serviceId': service.id}) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour aux disponibilités
                 </a>
                 <form action="{{ path('app_client_booking_confirm', {
                     'bookingLink': professional.bookingLink,

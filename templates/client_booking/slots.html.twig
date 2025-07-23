@@ -110,8 +110,9 @@
                     'serviceId': selectedService.id,
                     'currentDate': currentDate|date('Y-m-d', 'Europe/Paris') is same as(date('now', 'Europe/Paris')|date('Y-m-d')) ? currentDate|date('Y-m-d') : currentDate|date_modify('-8 days')|date('Y-m-d')
                 }) }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-chevron-left"></i> Jours précédents
+                    <i class="fas fa-chevron-left"></i> <span class="d-none d-md-inline">Jours précédents</span>
                 </a>
+
                 <span class="h4 mb-0 text-booking-primary">
                     {% if currentDate|date('Y-m-d') == date('now', 'Europe/Paris')|date('Y-m-d') %}
                         Aujourd'hui
@@ -126,8 +127,9 @@
                     'serviceId': selectedService.id,
                     'currentDate': (currentDate|date_modify('+8 days'))|date('Y-m-d')
                 }) }}" class="btn btn-outline-secondary">
-                    Jours suivants <i class="fas fa-chevron-right"></i>
+                    <span class="d-none d-md-inline">Jours suivants</span> <i class="fas fa-chevron-right"></i>
                 </a>
+                
             </div>
 
             <div class="desktop-columns" id="slots-columns">
@@ -157,7 +159,31 @@
                     </div>
                 {% endfor %}
             </div>
-
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a href="{{ path('app_client_booking_slots', {
+                    'bookingLink': professional.bookingLink,
+                    'serviceId': selectedService.id,
+                    'currentDate': currentDate|date('Y-m-d', 'Europe/Paris') is same as(date('now', 'Europe/Paris')|date('Y-m-d')) ? currentDate|date('Y-m-d') : currentDate|date_modify('-8 days')|date('Y-m-d')
+                }) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-chevron-left"></i> <span class="d-none md-inline">Jours précédents</span>
+                </a>
+                <span class="h4 mb-0 text-booking-primary">
+                    {% if currentDate|date('Y-m-d') == date('now', 'Europe/Paris')|date('Y-m-d') %}
+                        Aujourd'hui
+                    {% else %}
+                        {{ currentDate|date('d/m/Y', 'Europe/Paris') }}
+                    {% endif %}
+                    -
+                    {{ (currentDate|date_modify('+' ~ (availableSlots|length - 1) ~ ' days'))|date('d/m/Y', 'Europe/Paris') }}
+                </span>
+                <a href="{{ path('app_client_booking_slots', {
+                    'bookingLink': professional.bookingLink,
+                    'serviceId': selectedService.id,
+                    'currentDate': (currentDate|date_modify('+8 days'))|date('Y-m-d')
+                }) }}" class="btn btn-outline-secondary">
+                    <span class="d-none d-md-inline">Jours suivants</span> <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
             {% if not isClientLoggedIn %}
                 <div class="alert alert-warning text-center mt-4" role="alert">
                     Vous devez être connecté pour réserver un rendez-vous.

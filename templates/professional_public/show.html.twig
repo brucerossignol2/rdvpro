@@ -68,7 +68,7 @@
                     <div class="row"> {# Nouvelle ligne pour le logo et les coordonnées #}
                         <div class="col-md-4 text-center"> {# Colonne pour le logo #}
                             {% if professional.presentationLogo %}
-                                <img src="{{ asset('uploads/images/' ~ professional.presentationLogo) }}" alt="Logo de {{ professional.businessName }}" class="img-fluid rounded-circle mb-3" style="max-height: 120px; object-fit: cover;">
+                                <img src="{{ asset('uploads/images/' ~ professional.presentationLogo) }}" alt="Logo de {{ professional.businessName }}" class="img-fluid mb-3" style="max-height: 120px; object-fit: cover;">
                             {% else %}
                                 <div class="d-flex justify-content-center align-items-center bg-light rounded-circle mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
                                     <i class="fas fa-building fa-3x text-muted"></i>
@@ -194,7 +194,7 @@
                                             {% if service.appointmentType == 'home_service' %}
                                                 À domicile
                                             {% elseif service.appointmentType == 'office_service' %}
-                                                Chez le professionnel / au cabinet
+                                                Chez le professionnel
                                             {% elseif service.appointmentType == 'video_service' %}
                                                 Par visioconférence
                                             {% elseif service.appointmentType == 'phone_service' %}
