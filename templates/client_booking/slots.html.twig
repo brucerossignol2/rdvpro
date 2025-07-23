@@ -165,7 +165,7 @@
                     'serviceId': selectedService.id,
                     'currentDate': currentDate|date('Y-m-d', 'Europe/Paris') is same as(date('now', 'Europe/Paris')|date('Y-m-d')) ? currentDate|date('Y-m-d') : currentDate|date_modify('-8 days')|date('Y-m-d')
                 }) }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-chevron-left"></i> <span class="d-none md-inline">Jours précédents</span>
+                    <i class="fas fa-chevron-left"></i> <span class="d-none d-md-inline">Jours précédents</span>
                 </a>
                 <span class="h4 mb-0 text-booking-primary">
                     {% if currentDate|date('Y-m-d') == date('now', 'Europe/Paris')|date('Y-m-d') %}
