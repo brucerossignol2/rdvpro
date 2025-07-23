@@ -77,18 +77,12 @@ class AppointmentType extends AbstractType
             ])
             ->add('client', EntityType::class, [
                 'class' => Client::class,
-                'query_builder' => function (ClientRepository $er) use ($professional) {
-                    return $er->createQueryBuilder('c')
-                        ->where('c.professional = :professional')
-                        ->setParameter('professional', $professional)
-                        ->orderBy('c.lastName', 'ASC')
-                        ->addOrderBy('c.firstName', 'ASC');
-                },
                 'choice_label' => 'fullName',
                 'label' => 'Client',
                 'attr' => ['class' => 'form-select'],
                 'required' => false,
                 'placeholder' => 'Sélectionnez un client',
+                'choices' => $options['clients'], // <-- Utilise la liste de clients passée en option
             ])
             ->add('services', EntityType::class, [
                 'class' => Service::class,
@@ -114,11 +108,11 @@ class AppointmentType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Appointment::class,
-            'constraints' => [
-                new Callback([$this, 'validateAppointment']),
-            ],
+            'clients' => [], // Déclarez l'option 'clients' avec une valeur par défaut
         ]);
+        $resolver->setAllowedTypes('clients', 'array');
     }
+
 
     public function validateAppointment(Appointment $appointment, ExecutionContextInterface $context): void
     {

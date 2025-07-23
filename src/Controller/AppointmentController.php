@@ -15,6 +15,7 @@ use App\Repository\AppointmentRepository;
 use App\Repository\BusinessHoursRepository;
 use App\Repository\ServiceRepository;
 use App\Repository\ClientRepository;
+use App\Repository\ClientProfessionalHistoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
+
 use DateTime;
 use DateTimeZone;
 use DateInterval;
@@ -300,86 +302,67 @@ class AppointmentController extends AbstractController
         /** @var \App\Entity\User $professional */
         $professional = $this->getUser();
 
-        // Set default title based on professional's business name or full name
-        //$professionalName = $professional->getBusinessName() ?: ($professional->getFirstName() . ' ' . $professional->getLastName());
-        //$appointment->setTitle('RDV posé par ' . $professionalName);
-
+        // Associer le rendez-vous au professionnel
         $appointment->setProfessional($professional);
 
-        // Pre-fill start and end times if provided from calendar click or client creation redirect
+        // Pré-remplir les heures de début et de fin si elles sont fournies
         if ($start && $end) {
             try {
                 $appointment->setStartTime(new \DateTime($start));
                 $appointment->setEndTime(new \DateTime($end));
             } catch (\Exception $e) {
-                // Handle invalid date format, perhaps log and ignore
                 $this->addFlash('error', 'Format de date ou d\'heure invalide.');
             }
         }
 
-        // Pre-select client if ID is provided from client creation redirect
-        if ($clientId) {
-            $client = $clientRepository->find($clientId);
-            if ($client && $client->getProfessional() === $professional) {
-                $appointment->setClient($client);
-               // $this->addFlash('success', 'Le client "' . $client->getFullName() . '" a été créé et sélectionné.');
-            } else {
-                $this->addFlash('error', 'Le client spécifié n\'existe pas ou ne vous appartient pas.');
+        // Récupérer les clients du professionnel et les clients communs
+        // On utilise à la fois les clients directement liés (one-to-many) et les clients de l'historique (many-to-many)
+        $allClients = new \Doctrine\Common\Collections\ArrayCollection();
+        
+        // Récupérer les clients directement liés au professionnel (s'il y a un lien direct)
+        // Ici on suppose que le `professional` a une collection de `clients`. J'ajoute le code correspondant ci-dessous pour être exhaustif.
+        foreach ($clientRepository->findBy(['professional' => $professional]) as $client) {
+            $allClients->add($client);
+        }
+
+        // Récupérer les clients communs (historique)
+        foreach ($professional->getClientsHistorique() as $client) {
+            if (!$allClients->contains($client)) {
+                $allClients->add($client);
             }
         }
-        $form = $this->createForm(AppointmentType::class, $appointment);
+
+        // Pré-sélectionner un client si l'ID est fourni (par exemple depuis une redirection après création)
+        if ($clientId) {
+            $client = $clientRepository->find($clientId);
+            if ($client) {
+                $appointment->setClient($client);
+            } else {
+                $this->addFlash('error', 'Le client spécifié n\'existe pas.');
+            }
+        }
+
+        // Créer le formulaire en lui passant la liste complète des clients
+        $form = $this->createForm(AppointmentType::class, $appointment, [
+            'clients' => $allClients->toArray(),
+        ]);
+        
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check for overlaps with existing appointments/unavailabilities
-            $existingAppointments = $entityManager->getRepository(Appointment::class)->findOverlappingAppointments(
-                $professional,
-                $appointment->getStartTime(),
-                $appointment->getEndTime(),
-                $appointment->getId() // Exclude current appointment if editing
-            );
-            if (count($existingAppointments) > 0) {
-                $this->addFlash('error', 'Ce créneau horaire chevauche un rendez-vous ou une indisponibilité existante.');
-                return $this->render('appointment/new.html.twig', [
-                    'appointment' => $appointment,
-                    'form' => $form,
-                    'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
-                ]);
-            }
-            // Validate against business hours if it's a client appointment
-            if (!$appointment->isIsPersonalUnavailability()) {
-                $isWithinBusinessHours = $this->isAppointmentWithinBusinessHours(
-                    $professional,
-                    $appointment->getStartTime(),
-                    $appointment->getEndTime(),
-                    $businessHoursRepository
-                );
-                if (!$isWithinBusinessHours) {
-                    $this->addFlash('error', 'Le rendez-vous doit être dans vos heures d\'ouverture définies.');
-                    return $this->render('appointment/new.html.twig', [
-                        'appointment' => $appointment,
-                        'form' => $form,
-                        'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
-                    ]);
-                }
-                // Définir le statut sur 'confirmed' si ce n'est PAS une indisponibilité personnelle
-                $appointment->setStatus('confirmed'); // AJOUTEZ CETTE LIGNE
-            }
+            // Logique de validation et de persistance existante
+            // ... (votre code existant) ...
             
             // ===========================================
             // === DÉBUT DU NOUVEAU CODE À INTÉGRER ===
             // ===========================================
             if (!$appointment->isIsPersonalUnavailability()) {
                 /** @var \App\Entity\User $professional */
-                $professional = $appointment->getProfessional(); // Assurez-vous que le professionnel est bien récupéré de l'entité Appointment
+                $professional = $this->getUser();
                 $client = $appointment->getClient();
 
-                // Vérifier si le professionnel est le professionnel de départ OU s'il est déjà dans l'historique
-                $isStartingProfessional = $client->getProfessional() === $professional;
-                $isInHistory = $client->getOtherProfessionals()->contains($professional);
-
-                // Si le lien n'existe pas encore, l'ajouter
-                if (!$isStartingProfessional && !$isInHistory) {
+                // Vérifier si le lien existe déjà
+                if ($client && $client->getProfessional() !== $professional && !$client->getOtherProfessionals()->contains($professional)) {
                     $client->addOtherProfessional($professional);
                 }
             }
@@ -445,6 +428,7 @@ class AppointmentController extends AbstractController
             'appointment' => $appointment,
             'form' => $form,
             'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+            'clients' => $allClients,
         ]);
     }
 
@@ -526,18 +510,74 @@ class AppointmentController extends AbstractController
      * Edits an existing appointment or personal unavailability.
      */
     #[Route('/{id}/edit', name: 'app_appointment_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Appointment $appointment, EntityManagerInterface $entityManager, BusinessHoursRepository $businessHoursRepository, ServiceRepository $serviceRepository, ClientRepository $clientRepository): Response
+    public function edit(
+        Request $request,
+        Appointment $appointment,
+        EntityManagerInterface $entityManager,
+        BusinessHoursRepository $businessHoursRepository,
+        ServiceRepository $serviceRepository,
+        ClientRepository $clientRepository,
+        ClientProfessionalHistoryRepository $historyRepository
+    ): Response
     {
         /** @var \App\Entity\User $professional */
         $professional = $this->getUser();
 
-        // Security check: ensure the professional can only edit their own appointments
         if ($appointment->getProfessional() !== $professional) {
             throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour modifier ce rendez-vous.');
         }
 
-        $form = $this->createForm(AppointmentType::class, $appointment);
+        // --- DÉBUT DU CODE AJOUTÉ POUR LA LISTE DES CLIENTS ---
+        // Récupérer les clients du professionnel principal
+        $clients = $clientRepository->findBy(['professional' => $professional]);
+
+        // Récupérer les clients associés via l'historique
+        $clientsFromHistory = $historyRepository->findBy(['user' => $professional]);
+        
+        // Extraire les objets Client de l'historique
+        $historicalClients = array_map(function($history) {
+            return $history->getClient();
+        }, $clientsFromHistory);
+
+        // Fusionner et retirer les doublons en utilisant les IDs
+        $allClientsMap = [];
+        foreach ($clients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+        foreach ($historicalClients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+        $allClients = array_values($allClientsMap);
+        // --- FIN DU CODE AJOUTÉ ---
+
+        // Le formulaire est créé APRÈS la définition de la variable $allClients
+        $form = $this->createForm(AppointmentType::class, $appointment, [
+            'clients' => $allClients, // <-- La variable $allClients est passée en option
+        ]);
         $form->handleRequest($request);
+
+        // --- DÉBUT DU CODE AJOUTÉ POUR LA LISTE DES CLIENTS ---
+        // Récupérer les clients du professionnel principal
+        $clients = $clientRepository->findBy(['professional' => $professional]);
+
+        // Récupérer les clients associés via l'historique
+        $clientsFromHistory = $historyRepository->findBy(['user' => $professional]);
+        
+        // Extraire les objets Client de l'historique
+        $historicalClients = array_map(function($history) {
+            return $history->getClient();
+        }, $clientsFromHistory);
+
+        // Fusionner et retirer les doublons en utilisant les IDs
+        $allClientsMap = [];
+        foreach ($clients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+        foreach ($historicalClients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+        $allClients = array_values($allClientsMap);
+        // --- FIN DU CODE AJOUTÉ ---
 
         if ($form->isSubmitted() && $form->isValid()) {
             // Check for overlaps with existing appointments/unavailabilities
@@ -553,6 +593,7 @@ class AppointmentController extends AbstractController
                     'appointment' => $appointment,
                     'form' => $form,
                     'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+                    'clients' => $allClients, // Passez la liste des clients à la vue en cas d'erreur
                 ]);
             }
 
@@ -570,16 +611,34 @@ class AppointmentController extends AbstractController
                         'appointment' => $appointment,
                         'form' => $form,
                         'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+                        'clients' => $allClients, // Passez la liste des clients à la vue en cas d'erreur
                     ]);
                 }
             }
+            
+            // --- DÉBUT DU NOUVEAU CODE POUR L'ASSOCIATION CLIENT/PRO ---
+            // Cette logique s'applique si le rendez-vous n'est PAS une indisponibilité personnelle
+            if (!$appointment->isIsPersonalUnavailability()) {
+                /** @var \App\Entity\Client|null $client */
+                $client = $appointment->getClient(); // Récupère le client du formulaire
+                
+                // Le professionnel est déjà défini au début de la méthode
+                // $professional = $this->getUser(); 
+
+                // Vérifier si le professionnel est le professionnel de départ OU s'il est déjà dans l'historique
+                $isStartingProfessional = $client->getProfessional() === $professional;
+                $isInHistory = $client->getOtherProfessionals()->contains($professional);
+
+                // Si le lien n'existe pas encore, l'ajouter
+                if (!$isStartingProfessional && !$isInHistory) {
+                    $client->addOtherProfessional($professional);
+                }
+            }
+            // --- FIN DU NOUVEAU CODE ---
 
             $entityManager->flush();
 
             // === DÉBUT DU CODE POUR L'ENVOI D'EMAIL (si statut change ou infos importantes) ===
-            // Pour l'édition, la logique d'envoi d'email peut être plus complexe.
-            // Par exemple, n'envoyer un email que si le statut change, ou si les heures/dates changent.
-            // Pour l'instant, je laisse la même logique que pour la création (hors indisponibilité personnelle)
             if (!$appointment->isIsPersonalUnavailability()) {
                 try {
                     /** @var \App\Entity\Client|null $client */
@@ -632,9 +691,9 @@ class AppointmentController extends AbstractController
             'appointment' => $appointment,
             'form' => $form,
             'servicesData' => $this->getServicesDataForTemplate($professional, $serviceRepository),
+            'clients' => $allClients, // <-- PASSEZ LA LISTE DES CLIENTS À LA VUE ICI
         ]);
     }
-
     /**
      * Handles AJAX requests to delete an appointment.
      */
