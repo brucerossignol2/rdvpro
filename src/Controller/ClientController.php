@@ -3,33 +3,35 @@
 namespace App\Controller;
 
 use App\Entity\Client;
-use App\Entity\User; // Don't forget to import User entity
-use App\Form\ClientType; // Assuming ClientTypeForm.php defines ClientType
+use App\Entity\User;
+use App\Form\ClientType;
 use App\Repository\ClientRepository;
-use App\Repository\UserRepository; // Import UserRepository
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\HttpFoundation\JsonResponse; // Added for AJAX response
-use Symfony\Component\Validator\Validator\ValidatorInterface; // Added for manual validation
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface; // Import the password hasher
-use Symfony\Component\Mailer\MailerInterface; // Import MailerInterface
-use Symfony\Component\Mime\Email; // Import Email for sending
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface; // Import UrlGeneratorInterface
-use Symfony\Component\Dotenv\Dotenv; // Import Dotenv
-use Symfony\Component\Mailer\Transport; // Import Transport
-use Symfony\Component\Mailer\Mailer; // Import Mailer
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Mailer;
+use App\Repository\AppointmentRepository; // Import the AppointmentRepository
+use App\Repository\ClientProfessionalHistoryRepository; 
 
 #[Route('/client')]
-#[IsGranted('ROLE_USER')] // Restrict access to all client routes to authenticated users
+#[IsGranted('ROLE_USER')]
 class ClientController extends AbstractController
 {
     private UserPasswordHasherInterface $userPasswordHasher;
-    private MailerInterface $mailer; // Declare MailerInterface
-    private UrlGeneratorInterface $urlGenerator; // Declare UrlGeneratorInterface
+    private MailerInterface $mailer;
+    private UrlGeneratorInterface $urlGenerator;
 
     public function __construct(UserPasswordHasherInterface $userPasswordHasher, MailerInterface $mailer, UrlGeneratorInterface $urlGenerator)
     {
@@ -39,24 +41,41 @@ class ClientController extends AbstractController
     }
 
     #[Route('/', name: 'app_client_index', methods: ['GET'])]
-    public function index(ClientRepository $clientRepository): Response
+    public function index(ClientRepository $clientRepository, ClientProfessionalHistoryRepository $historyRepository): Response
     {
         /** @var User $professional */
         $professional = $this->getUser();
 
-        if (!$professional) {
-            throw $this->createAccessDeniedException();
-        }
-
+        // 1. Récupérer les clients du professionnel principal
         $clients = $clientRepository->findBy(['professional' => $professional]);
 
+        // 2. Récupérer les clients associés via l'historique
+        $clientsFromHistory = $historyRepository->findBy(['user' => $professional]);
+
+        // 3. Extraire les objets Client de l'historique
+        $historicalClients = array_map(function($history) {
+            return $history->getClient();
+        }, $clientsFromHistory);
+
+        // 4. Fusionner et retirer les doublons en utilisant les IDs
+        $allClientsMap = [];
+        foreach ($clients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+        foreach ($historicalClients as $client) {
+            $allClientsMap[$client->getId()] = $client;
+        }
+
+        // 5. Récupérer les valeurs du tableau pour obtenir la liste finale des clients uniques
+        $allClients = array_values($allClientsMap);
+
         return $this->render('client/index.html.twig', [
-            'clients' => $clients,
+            'clients' => $allClients,
         ]);
     }
 
     #[Route('/new', name: 'app_client_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository, ValidatorInterface $validator, ClientRepository $clientRepository): Response // Injected ClientRepository
+    public function new(Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository, ValidatorInterface $validator, ClientRepository $clientRepository): Response
     {
         /** @var User $professional */
         $professional = $this->getUser();
@@ -66,30 +85,26 @@ class ClientController extends AbstractController
         }
 
         $client = new Client();
-        // Set the professional for the new client
         $client->setProfessional($professional);
         $client->setCreatedAt(new \DateTimeImmutable());
-        $client->setIsVerified(true); // Clients created by professional are automatically verified
-        $client->setRoles(['ROLE_CLIENT']); // Assign ROLE_CLIENT
+        $client->setIsVerified(true);
+        $client->setRoles(['ROLE_CLIENT']);
 
         $form = $this->createForm(ClientType::class, $client);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check if a client with this email already exists for this professional
             $existingClient = $clientRepository->findOneByEmailAndProfessional($client->getEmail(), $professional);
 
             if ($existingClient) {
                 $this->addFlash('error', 'Un client avec cette adresse email existe déjà pour votre compte.');
-                // Re-render the form with the error message
                 return $this->render('client/new.html.twig', [
                     'client' => $client,
                     'form' => $form,
                 ]);
             }
 
-            // Generate a random password
-            $randomPassword = bin2hex(random_bytes(8)); // Generates a 16-character hex string
+            $randomPassword = bin2hex(random_bytes(8));
             $client->setPassword(
                 $this->userPasswordHasher->hashPassword(
                     $client,
@@ -100,10 +115,8 @@ class ClientController extends AbstractController
             $entityManager->persist($client);
             $entityManager->flush();
 
-            // --- Send email to the new client ---
             try {
                 if ($client && $client->getEmail() && $professional && $professional->getEmail()) {
-                    // Load .env file
                     $dotenv = new Dotenv();
                     $dotenv->loadEnv(dirname(__DIR__, 2) . '/.env');
 
@@ -130,8 +143,8 @@ class ClientController extends AbstractController
                             '<p>Cordialement,</p>' .
                             '<p>L\'équipe RDV Pro</p>'
                         );
-                        // Met répondre au professionnel si le mail existe
-                        if ($professional->getBusinessEmail()) { // Assuming businessEmail is the reply-to
+
+                        if ($professional->getBusinessEmail()) {
                             $email->addReplyTo($professional->getBusinessEmail());
                         }
 
@@ -143,9 +156,7 @@ class ClientController extends AbstractController
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Client créé, mais une erreur est survenue lors de l\'envoi de l\'email : ' . $e->getMessage());
             }
-            // --- End Send email ---
 
-            // Check if we need to return to the appointment creation page
             if ($request->query->get('returnToAppointment')) {
                 $appointmentStart = $request->query->get('appointmentStart');
                 $appointmentEnd = $request->query->get('appointmentEnd');
@@ -153,7 +164,7 @@ class ClientController extends AbstractController
                 return $this->redirectToRoute('app_appointment_new_prefilled', [
                     'start' => $appointmentStart,
                     'end' => $appointmentEnd,
-                    'clientId' => $client->getId(), // Pass the newly created client's ID
+                    'clientId' => $client->getId(),
                 ], Response::HTTP_SEE_OTHER);
             }
 
@@ -167,18 +178,29 @@ class ClientController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_client_show', methods: ['GET'])]
-    public function show(Client $client): Response
+    public function show(Client $client, AppointmentRepository $appointmentRepository): Response
     {
         /** @var User $professional */
         $professional = $this->getUser();
 
-        // Ensure the professional can only view their own clients
-        if ($client->getProfessional() !== $professional) {
+        // Vérifier si l'utilisateur a le rôle ROLE_ADMIN (accès complet)
+        if ($this->isGranted('ROLE_ADMIN')) {
+            // L'admin a accès à tous les clients
+        }
+        // Ou si le professionnel est le professionnel principal OU fait partie des autres professionnels
+        else if ($client->getProfessional() === $professional || $client->getOtherProfessionals()->contains($professional)) {
+            // Accès autorisé
+        }
+        // Sinon, l'accès est refusé
+        else {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à ce client.');
         }
-
+        
+        $upcomingAppointments = $appointmentRepository->findByProfessionalAndClientUpcomingAppointments($professional, $client);
+        
         return $this->render('client/show.html.twig', [
             'client' => $client,
+            'appointments' => $upcomingAppointments,
         ]);
     }
 
@@ -188,8 +210,16 @@ class ClientController extends AbstractController
         /** @var User $professional */
         $professional = $this->getUser();
 
-        // Ensure the professional can only edit their own clients
-        if ($client->getProfessional() !== $professional) {
+        // Vérifier si l'utilisateur a le rôle ROLE_ADMIN (accès complet)
+        if ($this->isGranted('ROLE_ADMIN')) {
+            // L'admin a accès à tous les clients
+        }
+        // Ou si le professionnel est le professionnel principal OU fait partie des autres professionnels
+        else if ($client->getProfessional() === $professional || $client->getOtherProfessionals()->contains($professional)) {
+            // Accès autorisé
+        }
+        // Sinon, l'accès est refusé
+        else {
             throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour modifier ce client.');
         }
 
@@ -197,7 +227,6 @@ class ClientController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check for duplicate email on edit, excluding the current client being edited
             $existingClient = $entityManager->getRepository(Client::class)->findOneBy([
                 'email' => $client->getEmail(),
                 'professional' => $professional
@@ -230,17 +259,27 @@ class ClientController extends AbstractController
         /** @var User $professional */
         $professional = $this->getUser();
 
-        // Ensure the professional can only delete their own clients
-        if ($client->getProfessional() !== $professional) {
-            throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour supprimer ce client.');
+        // Condition pour autoriser la suppression :
+        $canDelete = $client->getProfessional() === $professional && $client->getOtherProfessionals()->isEmpty();
+
+        // On vérifie si l'utilisateur est un administrateur ou s'il remplit les conditions de suppression
+        if ($this->isGranted('ROLE_ADMIN') || $canDelete) {
+            if ($this->isCsrfTokenValid('delete' . $client->getId(), $request->request->get('_token'))) {
+                $entityManager->remove($client);
+                $entityManager->flush();
+                $this->addFlash('success', 'Client supprimé avec succès.');
+            } else {
+                $this->addFlash('error', 'Token CSRF invalide.');
+            }
+        } else {
+            // Remplacer l'exception par un message flash et une redirection
+            $this->addFlash(
+                'error',
+                'Vous n\'avez pas les droits pour supprimer ce client ou il est associé à d\'autres professionnels.'
+            );
         }
 
-        if ($this->isCsrfTokenValid('delete' . $client->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($client);
-            $entityManager->flush();
-            $this->addFlash('success', 'Client supprimé avec succès.');
-        }
-
+        // Dans tous les cas, on redirige vers la liste des clients.
         return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
     }
 }

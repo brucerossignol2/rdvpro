@@ -151,12 +151,12 @@
                         <div class="card-header bg-success text-white">
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-calendar-check"></i>
-                                Rendez-vous
-                                <span class="badge bg-light text-success ms-2">{{ client.appointments|length }}</span>
+                                Rendez-vous futurs
+                                <span class="badge bg-light text-success ms-2">{{ appointments|length }}</span>
                             </h5>
                         </div>
                         <div class="card-body">
-                            {% if client.appointments|length > 0 %}
+                            {% if appointments|length > 0 %}
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover">
                                         <thead class="table-light">
@@ -169,7 +169,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for appointment in client.appointments %}
+                                            {% for appointment in appointments %}
                                                 <tr>
                                                     <td>
                                                         <i class="fas fa-calendar text-muted"></i>
@@ -263,7 +263,9 @@
                             <div class="row text-center">
                                 <div class="col-6">
                                     <div class="stat-item">
-                                        <h4 class="text-primary">{{ client.appointments|length }}</h4>
+                                        <h4 class="text-primary">
+                                        {{ client.appointments|filter(a => a.professional.id == app.user.id)|length }}
+                                        </h4>
                                         <small class="text-muted">RDV total</small>
                                     </div>
                                 </div>
@@ -272,7 +274,7 @@
                                         <h4 class="text-success">
                                             {% set confirmedCount = 0 %}
                                             {% for appointment in client.appointments %}
-                                                {% if appointment.status == 'confirmed' %}
+                                                {% if appointment.professional.id == app.user.id and appointment.status == 'confirmed' %}
                                                     {% set confirmedCount = confirmedCount + 1 %}
                                                 {% endif %}
                                             {% endfor %}
@@ -296,7 +298,6 @@
                                     {% endif %}
                                 </small>
                             </div>
-
                         </div>
                     </div>
 

@@ -65,17 +65,29 @@ class Client implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinColumn(nullable: false)]
     private ?User $professional = null;
 
+    #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: 'client_professional_history')]
+    private Collection $otherProfessionals;
+
     #[ORM\Column(type: 'boolean')]
     private bool $isVerified = false;
 
     #[ORM\OneToMany(targetEntity: Appointment::class, mappedBy: 'client')]
     private Collection $appointments;
 
+    /**
+     * @var Collection<int, ClientProfessionalHistory>
+     */
+    #[ORM\OneToMany(targetEntity: ClientProfessionalHistory::class, mappedBy: 'client')]
+    private Collection $clientProfessionalHistories;
+
     public function __construct()
     {
         $this->appointments = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->roles = ['ROLE_CLIENT']; // Default role for clients
+        $this->otherProfessionals = new ArrayCollection();
+        $this->clientProfessionalHistories = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -288,4 +300,55 @@ class Client implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+    public function getOtherProfessionals(): Collection
+    {
+        return $this->otherProfessionals;
+    }
+
+    public function addOtherProfessional(User $professional): static
+    {
+        if (!$this->otherProfessionals->contains($professional)) {
+            $this->otherProfessionals->add($professional);
+        }
+
+        return $this;
+    }
+
+    public function removeOtherProfessional(User $professional): static
+    {
+        $this->otherProfessionals->removeElement($professional);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientProfessionalHistory>
+     */
+    public function getClientProfessionalHistories(): Collection
+    {
+        return $this->clientProfessionalHistories;
+    }
+
+    public function addClientProfessionalHistory(ClientProfessionalHistory $clientProfessionalHistory): static
+    {
+        if (!$this->clientProfessionalHistories->contains($clientProfessionalHistory)) {
+            $this->clientProfessionalHistories->add($clientProfessionalHistory);
+            $clientProfessionalHistory->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientProfessionalHistory(ClientProfessionalHistory $clientProfessionalHistory): static
+    {
+        if ($this->clientProfessionalHistories->removeElement($clientProfessionalHistory)) {
+            // set the owning side to null (unless already changed)
+            if ($clientProfessionalHistory->getClient() === $this) {
+                $clientProfessionalHistory->setClient(null);
+            }
+        }
+
+        return $this;
+    }
+
 }

@@ -552,6 +552,19 @@ class ClientBookingController extends AbstractController
         $appointment->setIsPersonalUnavailability(false); // This is a client appointment
         $appointment->setCreatedAt(new \DateTimeImmutable()); // Set creation timestamp
 
+        // === DÉBUT DE L'AJOUT ===
+        // Vérifier si le professionnel est le professionnel "primaire" du client
+        $isStartingProfessional = $client->getProfessional() === $professional;
+
+        // Vérifier si le professionnel est déjà dans la liste des autres professionnels du client
+        $isInHistory = $client->getOtherProfessionals()->contains($professional);
+
+        // Si le professionnel n'est ni le professionnel principal, ni dans l'historique, l'ajouter
+        if (!$isStartingProfessional && !$isInHistory) {
+            $client->addOtherProfessional($professional);
+        }
+        // === FIN DE L'AJOUT ===
+
         // You might want a confirmation form here, but for simplicity, directly persist
         if ($request->isMethod('POST')) {
     try {

@@ -365,6 +365,28 @@ class AppointmentController extends AbstractController
                 // Définir le statut sur 'confirmed' si ce n'est PAS une indisponibilité personnelle
                 $appointment->setStatus('confirmed'); // AJOUTEZ CETTE LIGNE
             }
+            
+            // ===========================================
+            // === DÉBUT DU NOUVEAU CODE À INTÉGRER ===
+            // ===========================================
+            if (!$appointment->isIsPersonalUnavailability()) {
+                /** @var \App\Entity\User $professional */
+                $professional = $appointment->getProfessional(); // Assurez-vous que le professionnel est bien récupéré de l'entité Appointment
+                $client = $appointment->getClient();
+
+                // Vérifier si le professionnel est le professionnel de départ OU s'il est déjà dans l'historique
+                $isStartingProfessional = $client->getProfessional() === $professional;
+                $isInHistory = $client->getOtherProfessionals()->contains($professional);
+
+                // Si le lien n'existe pas encore, l'ajouter
+                if (!$isStartingProfessional && !$isInHistory) {
+                    $client->addOtherProfessional($professional);
+                }
+            }
+            // ===========================================
+            // === FIN DU NOUVEAU CODE ===
+            // ===========================================
+
             $entityManager->persist($appointment);
             $entityManager->flush();
 

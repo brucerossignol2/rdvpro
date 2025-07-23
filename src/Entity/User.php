@@ -90,6 +90,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)] // Nouvelle propriété pour le logo
     private ?string $presentationLogo = null;
 
+    #[ORM\ManyToMany(targetEntity: Client::class, mappedBy: 'otherProfessionals')]
+    private Collection $clientsHistorique;
+
+    /**
+     * @var Collection<int, ClientProfessionalHistory>
+     */
+    #[ORM\OneToMany(targetEntity: ClientProfessionalHistory::class, mappedBy: 'user')]
+    private Collection $clientProfessionalHistories;
 
     public function __construct()
     {
@@ -99,6 +107,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->businessHours = new ArrayCollection();
         $this->unavailabilities = new ArrayCollection();
         $this->roles = ['ROLE_USER']; // Default role
+        $this->clientsHistorique = new ArrayCollection();
+        $this->clientProfessionalHistories = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -443,6 +453,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPresentationLogo(?string $presentationLogo): static
     {
         $this->presentationLogo = $presentationLogo;
+
+        return $this;
+    }
+    public function getClientsHistorique(): Collection
+    {
+        return $this->clientsHistorique;
+    }
+
+    /**
+     * @return Collection<int, ClientProfessionalHistory>
+     */
+    public function getClientProfessionalHistories(): Collection
+    {
+        return $this->clientProfessionalHistories;
+    }
+
+    public function addClientProfessionalHistory(ClientProfessionalHistory $clientProfessionalHistory): static
+    {
+        if (!$this->clientProfessionalHistories->contains($clientProfessionalHistory)) {
+            $this->clientProfessionalHistories->add($clientProfessionalHistory);
+            $clientProfessionalHistory->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientProfessionalHistory(ClientProfessionalHistory $clientProfessionalHistory): static
+    {
+        if ($this->clientProfessionalHistories->removeElement($clientProfessionalHistory)) {
+            // set the owning side to null (unless already changed)
+            if ($clientProfessionalHistory->getUser() === $this) {
+                $clientProfessionalHistory->setUser(null);
+            }
+        }
 
         return $this;
     }

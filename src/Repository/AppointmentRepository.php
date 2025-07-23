@@ -139,4 +139,20 @@ class AppointmentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+    /**
+     * @return Appointment[] Returns an array of upcoming Appointment objects for a specific professional and client
+     */
+    public function findByProfessionalAndClientUpcomingAppointments(User $professional, Client $client): array
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.professional = :professional')
+            ->andWhere('a.client = :client')
+            ->andWhere('a.endTime >= :now')
+            ->setParameter('professional', $professional)
+            ->setParameter('client', $client)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->orderBy('a.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

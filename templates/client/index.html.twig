@@ -178,7 +178,7 @@
                                         </td>
                                         <td class="text-center">
                                             <span class="badge bg-info">
-                                                {{ client.appointments|length }}
+                                                {{ client.appointments|filter(a => a.professional.id == app.user.id)|length }}
                                             </span>
                                         </td>
                                         <td class="text-center">

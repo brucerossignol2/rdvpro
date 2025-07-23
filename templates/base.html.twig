@@ -228,6 +228,23 @@
                                         {% endif %}
                                     </a>
                                 </li>
+                                {# DÉBUT DE L'AJOUT : Boucle sur les autres professionnels #}
+                                {% for otherProfessional in app.user.otherProfessionals %}
+                                    {# On vérifie que ce n'est pas le même que le professionnel principal, au cas où #}
+                                    {% if otherProfessional.id != app.user.professional.id %}
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ path('app_professional_public_show', {'bookingLink': otherProfessional.bookingLink}) }}">
+                                                <i class="fas fa-briefcase"></i> 
+                                                {% if otherProfessional.businessName %}
+                                                    {{ otherProfessional.businessName }}
+                                                {% else %}
+                                                    {{ otherProfessional.firstName }} {{ otherProfessional.lastName }}
+                                                {% endif %}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                {# FIN DE L'AJOUT #}
                             {% endif %}
                         {% endif %}
                     </ul>
